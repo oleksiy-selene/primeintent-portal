@@ -62,7 +62,17 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
     // Convert wall-clock times in the selected tz to UTC ISO strings.
     const from = localStringToUtcIso(customFrom, tz);
     const to = localStringToUtcIso(customTo, tz);
-    const label = `${customFrom.slice(0, 10)} – ${customTo.slice(0, 10)}`;
+    if (from >= to) return; // guard: from must be before to
+    const fmt = (s: string) =>
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }).format(new Date(s));
+    const label = `${fmt(from)} – ${fmt(to)}`;
     onChange({ from, to, preset: "custom", label });
     setOpen(false);
   }
