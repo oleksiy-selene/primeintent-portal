@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState } from "react";
 import {
   useInfiniteQuery,
   useQuery,
@@ -7,8 +7,8 @@ import {
 import { AppLayout } from "@/components/_shared/AppLayout";
 import { Header } from "@/components/_shared/Header";
 import { useAuth } from "@/contexts/AuthContext";
-import { DateRangePicker, type DateRange } from "@/components/_shared/DateRangePicker";
-import { getPresetRange } from "@/lib/dateRange";
+import { DateRangePicker } from "@/components/_shared/DateRangePicker";
+import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
 import { supabase } from "@/lib/supabase";
 import { PAGE_SIZE } from "@/lib/useInfiniteScroll";
 import { useSortState } from "@/lib/useSortState";
@@ -236,21 +236,7 @@ export default function Campaigns() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<CampaignRow | null>(null);
 
-  const [dateRange, setDateRange] = useState<DateRange>(() =>
-    getPresetRange("last-30", profile?.timezone ?? "America/New_York"),
-  );
-  const tzInitializedRef = useRef(false);
-  const userTouchedRef = useRef(false);
-  const handleDateRangeChange = (range: DateRange) => {
-    userTouchedRef.current = true;
-    setDateRange(range);
-  };
-  useEffect(() => {
-    const tz = profile?.timezone;
-    if (!tz || tzInitializedRef.current || userTouchedRef.current) return;
-    tzInitializedRef.current = true;
-    setDateRange(getPresetRange("last-30", tz));
-  }, [profile?.timezone]);
+  const [dateRange, handleDateRangeChange] = useDateRangeWithTimezone("today", profile?.timezone);
 
   const { sortKey, sortDir, toggleSort, resetSort } =
     useSortState<CampaignsSortKey>("created_at", "desc");

@@ -1,7 +1,7 @@
-import { useMemo, useState, useEffect, useRef, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
-import { DateRangePicker, type DateRange } from "@/components/_shared/DateRangePicker";
-import { getPresetRange } from "@/lib/dateRange";
+import { DateRangePicker } from "@/components/_shared/DateRangePicker";
+import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
 import {
   useInfiniteQuery,
   useQuery,
@@ -459,21 +459,7 @@ export default function Partners() {
 
   const partnerIds = useMemo(() => rows.map((r) => r.partner_id), [rows]);
 
-  const [dateRange, setDateRange] = useState<DateRange>(() =>
-    getPresetRange("today", profile?.timezone ?? "America/New_York"),
-  );
-  const tzInitializedRef = useRef(false);
-  const userTouchedRef = useRef(false);
-  const handleDateRangeChange = (range: DateRange) => {
-    userTouchedRef.current = true;
-    setDateRange(range);
-  };
-  useEffect(() => {
-    const tz = profile?.timezone;
-    if (!tz || tzInitializedRef.current || userTouchedRef.current) return;
-    tzInitializedRef.current = true;
-    setDateRange(getPresetRange("today", tz));
-  }, [profile?.timezone]);
+  const [dateRange, handleDateRangeChange] = useDateRangeWithTimezone("today", profile?.timezone);
 
   const perf = useQuery({
     queryKey: ["partner-perf", partnerIds, dateRange.from, dateRange.to],

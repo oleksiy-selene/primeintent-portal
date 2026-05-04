@@ -1,7 +1,7 @@
-import { useMemo, useState, useEffect, useRef, type ReactNode } from "react";
+import { useMemo, useState, useRef, useEffect, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { DateRangePicker, type DateRange } from "@/components/_shared/DateRangePicker";
-import { getPresetRange } from "@/lib/dateRange";
+import { DateRangePicker } from "@/components/_shared/DateRangePicker";
+import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
 import {
   useQuery,
   useMutation,
@@ -606,21 +606,7 @@ export default function PartnerDetail() {
 
   const visibleIds = useMemo(() => campaignRows.map((c) => c.campaign_id), [campaignRows]);
 
-  const [dateRange, setDateRange] = useState<DateRange>(() =>
-    getPresetRange("today", profile?.timezone ?? "America/New_York"),
-  );
-  const tzInitializedRef = useRef(false);
-  const userTouchedRef = useRef(false);
-  const handleDateRangeChange = (range: DateRange) => {
-    userTouchedRef.current = true;
-    setDateRange(range);
-  };
-  useEffect(() => {
-    const tz = profile?.timezone;
-    if (!tz || tzInitializedRef.current || userTouchedRef.current) return;
-    tzInitializedRef.current = true;
-    setDateRange(getPresetRange("today", tz));
-  }, [profile?.timezone]);
+  const [dateRange, handleDateRangeChange] = useDateRangeWithTimezone("today", profile?.timezone);
 
   const performanceQ = useQuery({
     queryKey: ["partner-campaign-performance", visibleIds, dateRange.from, dateRange.to],

@@ -1,10 +1,10 @@
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/_shared/AppLayout";
 import { Header } from "@/components/_shared/Header";
 import { useAuth } from "@/contexts/AuthContext";
-import { DateRangePicker, type DateRange } from "@/components/_shared/DateRangePicker";
-import { getPresetRange } from "@/lib/dateRange";
+import { DateRangePicker } from "@/components/_shared/DateRangePicker";
+import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
 import { num, pct, usd, formatDateTime } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { useInfiniteScroll, PAGE_SIZE } from "@/lib/useInfiniteScroll";
@@ -184,21 +184,7 @@ export default function Visitors() {
   const [utmSource, setUtmSource] = useState("");
   const [clickId, setClickId] = useState("");
 
-  const [dateRange, setDateRange] = useState<DateRange>(() =>
-    getPresetRange("last-7", profile?.timezone ?? "America/New_York"),
-  );
-  const tzInitializedRef = useRef(false);
-  const userTouchedRef = useRef(false);
-  const handleDateRangeChange = (range: DateRange) => {
-    userTouchedRef.current = true;
-    setDateRange(range);
-  };
-  useEffect(() => {
-    const tz = profile?.timezone;
-    if (!tz || tzInitializedRef.current || userTouchedRef.current) return;
-    tzInitializedRef.current = true;
-    setDateRange(getPresetRange("last-7", tz));
-  }, [profile?.timezone]);
+  const [dateRange, handleDateRangeChange] = useDateRangeWithTimezone("today", profile?.timezone);
 
   const { sortKey, sortDir, toggleSort, resetSort } = useSortState<VisitorsSortKey>(
     "created_at",
