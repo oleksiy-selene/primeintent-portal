@@ -18,13 +18,41 @@ export default function Welcome() {
   const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        navigate("/login", { replace: true });
-      } else {
+    let redirectTimer: ReturnType<typeof setTimeout> | null = null;
+    let settled = false;
+
+    const settle = (hasSession: boolean) => {
+      if (settled) return;
+      settled = true;
+      if (redirectTimer) clearTimeout(redirectTimer);
+      if (hasSession) {
         setSessionReady(true);
+      } else {
+        navigate("/login", { replace: true });
+      }
+    };
+
+    // Listen for the SIGNED_IN event that fires when Supabase processes the
+    // invite token from the URL fragment (may arrive after getSession resolves).
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) settle(true);
+    });
+
+    // Also check for an already-established session (e.g. returning user).
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        settle(true);
+      } else {
+        // Fallback: if no session arrives within 4 s, redirect to login.
+        redirectTimer = setTimeout(() => settle(false), 4000);
       }
     });
+
+    return () => {
+      settled = true;
+      if (redirectTimer) clearTimeout(redirectTimer);
+      sub.subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const validate = (): string | null => {
