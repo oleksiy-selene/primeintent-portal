@@ -1,7 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/_shared/AppLayout";
 import { Header } from "@/components/_shared/Header";
+import { useAuth } from "@/contexts/AuthContext";
+import { DateRangePicker, type DateRange } from "@/components/_shared/DateRangePicker";
+import { getPresetRange } from "@/lib/dateRange";
 import { num, pct, usd, formatDateTime } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { useInfiniteScroll, PAGE_SIZE } from "@/lib/useInfiniteScroll";
@@ -50,28 +53,13 @@ interface VisitorRow {
   visitor_conversions: { visitor_conversion_id: number }[] | null;
 }
 
-const RANGE_OPTIONS = [
-  { value: "1", label: "Today" },
-  { value: "7", label: "Last 7 days" },
-  { value: "30", label: "Last 30 days" },
-  { value: "90", label: "Last 90 days" },
-];
-
-function rangeStartIso(days: number) {
-  const d = new Date();
-  if (days === 1) {
-    d.setHours(0, 0, 0, 0);
-  } else {
-    d.setTime(d.getTime() - days * 24 * 60 * 60 * 1000);
-  }
-  return d.toISOString();
-}
 
 interface VisitorsFilter {
   campaignId: string;
   utmSource: string;
   clickId: string;
-  days: number;
+  from: string;
+  to: string;
   sortKey: VisitorsSortKey;
   sortDir: "asc" | "desc";
 }
@@ -82,8 +70,6 @@ async function fetchVisitorsPage(
 ): Promise<{ rows: VisitorRow[]; hasMore: boolean }> {
   const from = pageIndex * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
-  const since = rangeStartIso(filter.days);
-
   let query = supabase
     .from("visitors")
     .select(
@@ -100,7 +86,8 @@ async function fetchVisitorsPage(
       visitor_conversions!visitor_conversions_visitor_id_fkey ( visitor_conversion_id )
     `,
     )
-    .gte("created_at", since)
+    .gte("created_at", filter.from)
+    .lte("created_at", filter.to)
     .range(from, to);
 
   if (filter.sortKey === "device_type_id") {
@@ -192,11 +179,23 @@ function DeviceIcon({ device }: { device: string | null | undefined }) {
 }
 
 export default function Visitors() {
+  const { profile } = useAuth();
   const [campaignFilter, setCampaignFilter] = useState("all");
   const [utmSource, setUtmSource] = useState("");
   const [clickId, setClickId] = useState("");
-  const [rangeDays, setRangeDays] = useState("7");
-  const days = Number(rangeDays);
+
+  const [dateRange, setDateRange] = useState<DateRange>(() =>
+    getPresetRange("last-7", profile?.timezone ?? "America/New_York"),
+  );
+  const prevTzRef = useRef<string | null>(null);
+  useEffect(() => {
+    const tz = profile?.timezone;
+    if (!tz || tz === prevTzRef.current) return;
+    prevTzRef.current = tz;
+    setDateRange((prev) =>
+      prev.preset === "custom" ? prev : getPresetRange(prev.preset as import("@/lib/dateRange").PresetKey, tz),
+    );
+  }, [profile?.timezone]);
 
   const { sortKey, sortDir, toggleSort, resetSort } = useSortState<VisitorsSortKey>(
     "created_at",
@@ -207,7 +206,8 @@ export default function Visitors() {
     campaignId: campaignFilter,
     utmSource,
     clickId,
-    days,
+    from: dateRange.from,
+    to: dateRange.to,
     sortKey: sortKey ?? "created_at",
     sortDir,
   };
@@ -333,18 +333,7 @@ export default function Visitors() {
 
           <div className="flex-1" />
 
-          <Select value={rangeDays} onValueChange={(v) => { setRangeDays(v); if (v === "7") resetSort(); }}>
-            <SelectTrigger className="w-[140px] h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RANGE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <DateRangePicker value={dateRange} onChange={setDateRange} />
         </div>
 
         <div className="flex-1 border border-slate-200 rounded-lg bg-white shadow-sm overflow-hidden flex flex-col">

@@ -7,6 +7,8 @@ import {
 import { AppLayout } from "@/components/_shared/AppLayout";
 import { Header } from "@/components/_shared/Header";
 import { useAuth } from "@/contexts/AuthContext";
+import { DateRangePicker, type DateRange } from "@/components/_shared/DateRangePicker";
+import { getPresetRange } from "@/lib/dateRange";
 import { supabase } from "@/lib/supabase";
 import { PAGE_SIZE } from "@/lib/useInfiniteScroll";
 import { useSortState } from "@/lib/useSortState";
@@ -78,15 +80,6 @@ interface CampaignsFilter {
   sortDir: "asc" | "desc";
 }
 
-const RANGE_OPTIONS = [
-  { value: "7", label: "Last 7 days" },
-  { value: "30", label: "Last 30 days" },
-  { value: "90", label: "Last 90 days" },
-];
-
-function rangeStartIso(days: number) {
-  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-}
 
 async function fetchCampaignsPage(
   filter: CampaignsFilter,
@@ -149,21 +142,22 @@ async function fetchCampaignsPage(
 
 async function fetchPerformance(
   campaignIds: number[],
-  days: number,
+  from: string,
+  to: string,
 ): Promise<Map<number, PerfTotals>> {
   const result = new Map<number, PerfTotals>();
   campaignIds.forEach((id) =>
     result.set(id, { visitors: 0, revenue: 0, cost: 0 }),
   );
   if (campaignIds.length === 0) return result;
-  const since = rangeStartIso(days);
 
   const [visitorsRes, conversionsRes, expensesRes] = await Promise.all([
     supabase
       .from("visitors")
       .select("campaign_id")
       .in("campaign_id", campaignIds)
-      .gte("created_at", since),
+      .gte("created_at", from)
+      .lte("created_at", to),
     supabase
       .from("visitor_conversions")
       .select(
@@ -175,12 +169,14 @@ async function fetchPerformance(
       )
       .eq("enum_conversion_status.name", "approved")
       .in("visitors.campaign_id", campaignIds)
-      .gte("created_at", since),
+      .gte("created_at", from)
+      .lte("created_at", to),
     supabase
       .from("campaign_expenses")
       .select("campaign_id, amount")
       .in("campaign_id", campaignIds)
-      .gte("start_time", since),
+      .gte("start_time", from)
+      .lte("start_time", to),
   ]);
 
   if (visitorsRes.error) throw visitorsRes.error;
@@ -235,13 +231,23 @@ export default function Campaigns() {
   const qc = useQueryClient();
 
   const [partnerFilter, setPartnerFilter] = useState("all");
-  const [rangeDays, setRangeDays] = useState("30");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<CampaignRow | null>(null);
 
-  const days = Number(rangeDays);
+  const [dateRange, setDateRange] = useState<DateRange>(() =>
+    getPresetRange("last-30", profile?.timezone ?? "America/New_York"),
+  );
+  const prevTzRef = useRef<string | null>(null);
+  useEffect(() => {
+    const tz = profile?.timezone;
+    if (!tz || tz === prevTzRef.current) return;
+    prevTzRef.current = tz;
+    setDateRange((prev) =>
+      prev.preset === "custom" ? prev : getPresetRange(prev.preset as import("@/lib/dateRange").PresetKey, tz),
+    );
+  }, [profile?.timezone]);
 
   const { sortKey, sortDir, toggleSort, resetSort } =
     useSortState<CampaignsSortKey>("created_at", "desc");
@@ -280,8 +286,8 @@ export default function Campaigns() {
   const visibleIds = useMemo(() => rows.map((c) => c.campaign_id), [rows]);
 
   const performance = useQuery({
-    queryKey: ["campaign-performance", visibleIds, days],
-    queryFn: () => fetchPerformance(visibleIds, days),
+    queryKey: ["campaign-performance", visibleIds, dateRange.from, dateRange.to],
+    queryFn: () => fetchPerformance(visibleIds, dateRange.from, dateRange.to),
     enabled: visibleIds.length > 0,
   });
 
@@ -386,18 +392,7 @@ export default function Campaigns() {
 
           <div className="flex-1" />
 
-          <Select value={rangeDays} onValueChange={setRangeDays}>
-            <SelectTrigger className="w-[160px] bg-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RANGE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <DateRangePicker value={dateRange} onChange={setDateRange} />
         </div>
 
         <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
