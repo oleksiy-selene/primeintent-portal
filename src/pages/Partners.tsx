@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, useEffect, useRef, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
 import { DateRangePicker, type DateRange } from "@/components/_shared/DateRangePicker";
 import { getPresetRange } from "@/lib/dateRange";
@@ -471,8 +471,17 @@ export default function Partners() {
   const partnerIds = useMemo(() => rows.map((r) => r.partner_id), [rows]);
 
   const [dateRange, setDateRange] = useState<DateRange>(() =>
-    getPresetRange("today", "America/New_York"),
+    getPresetRange("today", profile?.timezone ?? "America/New_York"),
   );
+  const prevTzRef = useRef<string | null>(null);
+  useEffect(() => {
+    const tz = profile?.timezone;
+    if (!tz || tz === prevTzRef.current) return;
+    prevTzRef.current = tz;
+    setDateRange((prev) =>
+      prev.preset === "custom" ? prev : getPresetRange(prev.preset as import("@/lib/dateRange").PresetKey, tz),
+    );
+  }, [profile?.timezone]);
 
   const perf = useQuery({
     queryKey: ["partner-perf", partnerIds, dateRange.from, dateRange.to],

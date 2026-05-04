@@ -606,8 +606,17 @@ export default function PartnerDetail() {
   const visibleIds = useMemo(() => campaignRows.map((c) => c.campaign_id), [campaignRows]);
 
   const [dateRange, setDateRange] = useState<DateRange>(() =>
-    getPresetRange("today", "America/New_York"),
+    getPresetRange("today", profile?.timezone ?? "America/New_York"),
   );
+  const prevTzRef = useRef<string | null>(null);
+  useEffect(() => {
+    const tz = profile?.timezone;
+    if (!tz || tz === prevTzRef.current) return;
+    prevTzRef.current = tz;
+    setDateRange((prev) =>
+      prev.preset === "custom" ? prev : getPresetRange(prev.preset as import("@/lib/dateRange").PresetKey, tz),
+    );
+  }, [profile?.timezone]);
 
   const performanceQ = useQuery({
     queryKey: ["partner-campaign-performance", visibleIds, dateRange.from, dateRange.to],

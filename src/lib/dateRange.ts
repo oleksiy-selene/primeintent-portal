@@ -29,9 +29,15 @@ export function tzLabel(tz: string): string {
   return TIMEZONES.find((t) => t.value === tz)?.label ?? tz;
 }
 
-function toTzMidnight(tz: string, ref: Date): Date {
-  const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(ref);
+/**
+ * Returns the UTC Date corresponding to midnight of `ymd` ("YYYY-MM-DD") in
+ * the given IANA timezone.  DST-safe: we never add fixed milliseconds across a
+ * day boundary; instead we adjust based on what UTC midnight looks like in `tz`.
+ */
+function tzMidnightFromYmd(tz: string, ymd: string): Date {
+  // Create a candidate by treating ymd as UTC midnight.
   const utcMidnight = new Date(ymd + "T00:00:00.000Z");
+  // Find out what hour:minute that UTC midnight maps to in the target timezone.
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: tz,
     hour: "2-digit",
@@ -41,6 +47,8 @@ function toTzMidnight(tz: string, ref: Date): Date {
   const h = parseInt(parts.find((p) => p.type === "hour")?.value ?? "0");
   const m = parseInt(parts.find((p) => p.type === "minute")?.value ?? "0");
   if (h === 0 && m === 0) return utcMidnight;
+  // Positive-offset tz (ahead of UTC): UTC midnight shows as h:m that same day.
+  // Negative-offset tz (behind UTC): UTC midnight shows as h:m the previous day (h ≥ 12).
   const adjMs =
     h < 12
       ? -(h * 60 + m) * 60_000
@@ -48,69 +56,65 @@ function toTzMidnight(tz: string, ref: Date): Date {
   return new Date(utcMidnight.getTime() + adjMs);
 }
 
-function addDays(d: Date, n: number): Date {
-  return new Date(d.getTime() + n * 86_400_000);
+/** Returns today's calendar date components in `tz`. */
+function todayInTz(tz: string): { y: number; mo: number; d: number } {
+  const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(new Date());
+  const [y, mo, d] = ymd.split("-").map(Number);
+  return { y, mo, d };
 }
 
-function endOfDay(start: Date): Date {
-  return new Date(start.getTime() + 86_400_000 - 1);
+/**
+ * Builds a "YYYY-MM-DD" string from UTC-based calendar arithmetic so that
+ * day/month/year rollover is handled correctly without DST interference.
+ */
+function calendarYmd(y: number, mo: number, d: number): string {
+  const dt = new Date(Date.UTC(y, mo - 1, d)); // handles month/year rollover
+  return (
+    dt.getUTCFullYear() +
+    "-" +
+    String(dt.getUTCMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(dt.getUTCDate()).padStart(2, "0")
+  );
 }
 
+/**
+ * Computes a timezone-aware DateRange for a preset key.
+ *
+ * `from` = start of the calendar period (midnight in `tz`).
+ * `to`   = now (current UTC instant) — presets always end at "right now",
+ *           never at an end-of-day boundary, so future-scheduled records are
+ *           not included and DST end-of-day drift is irrelevant.
+ */
 export function getPresetRange(preset: PresetKey, tz: string): DateRange {
   const now = new Date();
-  const todayStart = toTzMidnight(tz, now);
+  const nowIso = now.toISOString();
+  const { y, mo, d } = todayInTz(tz);
 
   switch (preset) {
     case "today": {
-      return {
-        from: todayStart.toISOString(),
-        to: endOfDay(todayStart).toISOString(),
-        preset,
-        label: "Today",
-      };
+      const start = tzMidnightFromYmd(tz, calendarYmd(y, mo, d));
+      return { from: start.toISOString(), to: nowIso, preset, label: "Today" };
     }
     case "this-week": {
-      const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(now);
-      const [y, mo, d] = ymd.split("-").map(Number);
-      const dow = new Date(y, mo - 1, d).getDay();
+      // Find the day-of-week of today in tz using UTC-based date so we stay
+      // in the calendar space of the target timezone (avoids local-tz leakage).
+      const dow = new Date(Date.UTC(y, mo - 1, d)).getUTCDay(); // 0=Sun … 6=Sat
       const daysToMon = dow === 0 ? 6 : dow - 1;
-      const monStart = addDays(todayStart, -daysToMon);
-      return {
-        from: monStart.toISOString(),
-        to: endOfDay(todayStart).toISOString(),
-        preset,
-        label: "This Week",
-      };
+      const start = tzMidnightFromYmd(tz, calendarYmd(y, mo, d - daysToMon));
+      return { from: start.toISOString(), to: nowIso, preset, label: "This Week" };
     }
     case "last-7": {
-      const start = addDays(todayStart, -6);
-      return {
-        from: start.toISOString(),
-        to: endOfDay(todayStart).toISOString(),
-        preset,
-        label: "Last 7 Days",
-      };
+      const start = tzMidnightFromYmd(tz, calendarYmd(y, mo, d - 6));
+      return { from: start.toISOString(), to: nowIso, preset, label: "Last 7 Days" };
     }
     case "this-month": {
-      const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(now);
-      const [y, mo] = ymd.split("-").map(Number);
-      const firstOfMonth = new Date(y, mo - 1, 1);
-      const monthStart = toTzMidnight(tz, firstOfMonth);
-      return {
-        from: monthStart.toISOString(),
-        to: endOfDay(todayStart).toISOString(),
-        preset,
-        label: "This Month",
-      };
+      const start = tzMidnightFromYmd(tz, calendarYmd(y, mo, 1));
+      return { from: start.toISOString(), to: nowIso, preset, label: "This Month" };
     }
     case "last-30": {
-      const start = addDays(todayStart, -29);
-      return {
-        from: start.toISOString(),
-        to: endOfDay(todayStart).toISOString(),
-        preset,
-        label: "Last 30 Days",
-      };
+      const start = tzMidnightFromYmd(tz, calendarYmd(y, mo, d - 29));
+      return { from: start.toISOString(), to: nowIso, preset, label: "Last 30 Days" };
     }
   }
 }
