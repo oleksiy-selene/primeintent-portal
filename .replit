@@ -42,3 +42,4 @@ externalPort = 80
 deploymentTarget = "static"
 build = ["pnpm", "run", "build"]
 publicDir = "dist/public"
+run = ["pnpm", "run", "serve"]
