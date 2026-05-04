@@ -325,15 +325,17 @@ export default function Login() {
                     ) : (
                       <Tooltip key={id}>
                         <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            disabled
-                            className="h-10 gap-2 border-slate-200 text-slate-400 cursor-not-allowed opacity-70"
-                          >
-                            <Icon className="w-4 h-4" />
-                            <span className="text-sm">{label}</span>
-                          </Button>
+                          <span className="w-full cursor-not-allowed">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              disabled
+                              className="h-10 gap-2 border-slate-200 text-slate-400 opacity-70 pointer-events-none w-full"
+                            >
+                              <Icon className="w-4 h-4" />
+                              <span className="text-sm">{label}</span>
+                            </Button>
+                          </span>
                         </TooltipTrigger>
                         <TooltipContent>Not implemented yet</TooltipContent>
                       </Tooltip>
