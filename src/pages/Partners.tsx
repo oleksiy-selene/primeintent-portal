@@ -42,7 +42,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Search, Loader2 } from "lucide-react";
+import { Plus, Search, Loader2, Copy, Check, ArrowRight } from "lucide-react";
+
+function UidCopy({ uid }: { uid: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <span className="inline-flex items-center gap-1 font-mono">
+      {uid.slice(0, 8)}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          void navigator.clipboard.writeText(uid).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          });
+        }}
+        className="text-slate-300 hover:text-indigo-500 transition-colors"
+        title="Copy full UID"
+      >
+        {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+      </button>
+    </span>
+  );
+}
 
 type PartnersSortKey = "name" | "partner_type_id" | "created_at";
 
@@ -380,7 +403,7 @@ export default function Partners() {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex-1 min-h-0 flex flex-col">
+        <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex-1 min-h-0 flex flex-col max-w-5xl">
           <div className="overflow-auto flex-1">
             <Table>
               <TableHeader className="bg-slate-50 sticky top-0 z-10">
@@ -400,8 +423,6 @@ export default function Partners() {
                     activeSortDir={sortDir}
                     onSort={(k) => toggleSort(k as PartnersSortKey)}
                   />
-                  <TableHead className="text-right">Campaigns</TableHead>
-                  <TableHead>Postback URL</TableHead>
                   <SortableHeader
                     label="Created"
                     sortKey="created_at"
@@ -409,15 +430,13 @@ export default function Partners() {
                     activeSortDir={sortDir}
                     onSort={(k) => toggleSort(k as PartnersSortKey)}
                   />
+                  <TableHead className="text-right">Campaigns</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {partners.isLoading && (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center text-slate-400 py-10"
-                    >
+                    <TableCell colSpan={4} className="text-center text-slate-400 py-10">
                       <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
                       Loading partners…
                     </TableCell>
@@ -425,10 +444,7 @@ export default function Partners() {
                 )}
                 {!partners.isLoading && rows.length === 0 && (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center text-slate-400 py-10"
-                    >
+                    <TableCell colSpan={4} className="text-center text-slate-400 py-10">
                       No partners match your filters.
                     </TableCell>
                   </TableRow>
@@ -436,12 +452,12 @@ export default function Partners() {
                 {rows.map((p) => (
                   <TableRow
                     key={p.partner_id}
-                    className="hover:bg-slate-50/80 cursor-pointer transition-colors"
+                    className="group hover:bg-slate-50/80 cursor-pointer transition-colors"
                     onClick={() => navigate(`/partners/${p.partner_id}`)}
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar className="w-9 h-9 border border-slate-200">
+                        <Avatar className="w-9 h-9 border border-slate-200 shrink-0">
                           <AvatarFallback className="bg-slate-100 text-slate-600 font-medium text-xs">
                             {avatarFor(p.name)}
                           </AvatarFallback>
@@ -450,8 +466,8 @@ export default function Partners() {
                           <span className="font-medium text-slate-900 truncate">
                             {p.name}
                           </span>
-                          <span className="text-xs text-slate-500 truncate font-mono">
-                            {p.partner_uid.slice(0, 8)}
+                          <span className="text-xs text-slate-500">
+                            <UidCopy uid={p.partner_uid} />
                           </span>
                         </div>
                       </div>
@@ -464,22 +480,32 @@ export default function Partners() {
                         {p.enum_partner_type?.name ?? "—"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right font-medium text-slate-700">
-                      {num(p.campaigns?.[0]?.count ?? 0)}
-                    </TableCell>
-                    <TableCell className="text-xs text-slate-500 font-mono truncate max-w-xs">
-                      {p.postback_url || (
-                        <span className="text-slate-300">—</span>
-                      )}
-                    </TableCell>
                     <TableCell className="text-xs text-slate-500">
                       {formatDate(p.created_at)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        <span className="font-medium text-slate-700">
+                          {num(p.campaigns?.[0]?.count ?? 0)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/partners/${p.partner_id}?tab=campaigns`);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap"
+                        >
+                          View campaigns
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
                 {partners.hasNextPage && (
                   <TableRow ref={sentinelRef}>
-                    <TableCell colSpan={5} className="py-4 text-center text-slate-400 text-xs">
+                    <TableCell colSpan={4} className="py-4 text-center text-slate-400 text-xs">
                       {partners.isFetchingNextPage ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-2" />
