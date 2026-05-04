@@ -232,17 +232,11 @@ export function CompactRefined1() {
                 </FieldRow>
               </div>
 
-              {/* Divider */}
-              <div className="px-8 py-3 bg-white border-b border-slate-100 flex items-center">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Settings</span>
-                <div className="h-px bg-slate-100 flex-1 ml-4" />
-              </div>
-
               {/* Editable Fields */}
               <div className="border-b border-slate-200">
                 <FieldRow label="Status" dirty={isFieldDirty('status')}>
                   <Select value={data.status} onValueChange={(v) => setData({...data, status: v})}>
-                    <SelectTrigger className={cn("w-[240px]", isFieldDirty('status') && "border-amber-300 bg-amber-50/30 focus:ring-amber-500")}>
+                    <SelectTrigger className={cn("w-[240px]", isFieldDirty('status') && "border-amber-300 bg-amber-50/30")}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -257,13 +251,13 @@ export function CompactRefined1() {
                   <Input 
                     value={data.name} 
                     onChange={(e) => setData({...data, name: e.target.value})}
-                    className={cn("max-w-[400px]", isFieldDirty('name') && "border-amber-300 bg-amber-50/30 focus-visible:ring-amber-500")}
+                    className={cn("max-w-[400px]", isFieldDirty('name') && "border-amber-300 bg-amber-50/30")}
                   />
                 </FieldRow>
 
                 <FieldRow label="Partner Type" dirty={isFieldDirty('type')}>
                   <Select value={data.type} onValueChange={(v) => setData({...data, type: v})}>
-                    <SelectTrigger className={cn("w-[240px]", isFieldDirty('type') && "border-amber-300 bg-amber-50/30 focus:ring-amber-500")}>
+                    <SelectTrigger className={cn("w-[240px]", isFieldDirty('type') && "border-amber-300 bg-amber-50/30")}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -279,7 +273,7 @@ export function CompactRefined1() {
                     <Input 
                       value={data.postback} 
                       onChange={(e) => setData({...data, postback: e.target.value})}
-                      className={cn("font-mono text-sm", isFieldDirty('postback') && "border-amber-300 bg-amber-50/30 focus-visible:ring-amber-500")}
+                      className={cn("font-mono text-sm", isFieldDirty('postback') && "border-amber-300 bg-amber-50/30")}
                     />
                     
                     <div className="bg-slate-50 border border-slate-200 rounded-md p-4">
