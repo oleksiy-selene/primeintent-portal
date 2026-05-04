@@ -655,10 +655,10 @@ export default function PartnerDetail() {
         }
       />
 
-      <div className="flex-1 min-h-0 flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col bg-white">
         <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-          {/* Tab bar — px-8 aligns tabs with content rows */}
-          <TabsList className="flex w-full items-center gap-6 border-b border-slate-200 rounded-none bg-transparent p-0 h-auto px-8 pt-6">
+          {/* Tab bar — px-8 aligns tabs with content rows, justify-start overrides shadcn's default justify-center */}
+          <TabsList className="flex w-full items-center justify-start gap-6 border-b border-slate-200 rounded-none bg-white p-0 h-auto px-8 pt-6">
             <TabsTrigger
               value="details"
               className="pb-3 text-sm font-medium rounded-none border-b-2 shadow-none bg-transparent px-0 data-[state=active]:border-indigo-500 data-[state=active]:text-indigo-600 data-[state=active]:bg-transparent data-[state=inactive]:border-transparent data-[state=inactive]:text-slate-500 hover:text-slate-700"
