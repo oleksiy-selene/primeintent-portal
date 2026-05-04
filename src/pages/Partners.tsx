@@ -561,7 +561,7 @@ export default function Partners() {
               ))}
             </SelectContent>
           </Select>
-          <DateRangePicker value={dateRange} onChange={setDateRange} />
+          <DateRangePicker value={dateRange} onChange={setDateRange} className="ml-auto" />
         </div>
 
         <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex-1 min-h-0 flex flex-col">
