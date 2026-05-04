@@ -384,6 +384,8 @@ export default function Campaigns() {
             </SelectContent>
           </Select>
 
+          <div className="flex-1" />
+
           <Select value={rangeDays} onValueChange={setRangeDays}>
             <SelectTrigger className="w-[160px] bg-white">
               <SelectValue />
