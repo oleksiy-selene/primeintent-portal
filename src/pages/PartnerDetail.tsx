@@ -545,6 +545,7 @@ export default function PartnerDetail() {
   const [, navigate] = useLocation();
   const search = useSearch();
   const defaultTab = new URLSearchParams(search).get("tab") === "campaigns" ? "campaigns" : "details";
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const { profile } = useAuth();
   const canWrite = profile?.role === "admin" || profile?.role === "manager";
   const qc = useQueryClient();
@@ -716,7 +717,7 @@ export default function PartnerDetail() {
       />
 
       <div className="flex-1 min-h-0 flex flex-col bg-white">
-        <Tabs defaultValue={defaultTab} className="flex-1 flex flex-col min-h-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
           {/* Tab bar — px-8 aligns tabs with content rows, justify-start overrides shadcn's default justify-center */}
           <TabsList className="flex w-full items-center justify-start gap-6 border-b border-slate-200 rounded-none bg-white p-0 h-auto px-8 pt-6">
             <TabsTrigger
@@ -736,6 +737,23 @@ export default function PartnerDetail() {
                 </span>
               )}
             </TabsTrigger>
+            {activeTab === "campaigns" && (
+              <div className="ml-auto flex items-center gap-3 pb-3">
+                <DateRangePicker value={dateRange} onChange={setDateRange} />
+                {canWrite && (
+                  <Button
+                    onClick={() => {
+                      setEditingCampaign(null);
+                      setCampaignDialogOpen(true);
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 h-8 text-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    New Campaign
+                  </Button>
+                )}
+              </div>
+            )}
           </TabsList>
 
           {/* ── Details Tab ── */}
@@ -753,53 +771,38 @@ export default function PartnerDetail() {
           <TabsContent value="campaigns" className="flex-1 flex flex-col min-h-0 mt-0">
             <div className="flex-1 flex flex-col gap-4 min-h-0 p-8">
               {/* Toolbar */}
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="relative w-64">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      value={campaignSearch}
-                      onChange={(e) => {
-                        setCampaignSearch(e.target.value);
-                        if (e.target.value === "") campResetSort();
-                      }}
-                      placeholder="Search campaigns…"
-                      className="pl-9 bg-white"
-                    />
-                  </div>
-                  <Select
-                    value={campaignStatusFilter}
-                    onValueChange={(v) => {
-                      setCampaignStatusFilter(v);
-                      if (v === "all") campResetSort();
+              <div className="flex items-center gap-3">
+                <div className="relative w-64">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    value={campaignSearch}
+                    onChange={(e) => {
+                      setCampaignSearch(e.target.value);
+                      if (e.target.value === "") campResetSort();
                     }}
-                  >
-                    <SelectTrigger className="w-32 bg-white">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      {campaignStatusesQ.data?.map((s) => (
-                        <SelectItem key={s.campaign_status_id} value={s.name}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <DateRangePicker value={dateRange} onChange={setDateRange} />
+                    placeholder="Search campaigns…"
+                    className="pl-9 bg-white"
+                  />
                 </div>
-                {canWrite && (
-                  <Button
-                    onClick={() => {
-                      setEditingCampaign(null);
-                      setCampaignDialogOpen(true);
-                    }}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    New Campaign
-                  </Button>
-                )}
+                <Select
+                  value={campaignStatusFilter}
+                  onValueChange={(v) => {
+                    setCampaignStatusFilter(v);
+                    if (v === "all") campResetSort();
+                  }}
+                >
+                  <SelectTrigger className="w-32 bg-white">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    {campaignStatusesQ.data?.map((s) => (
+                      <SelectItem key={s.campaign_status_id} value={s.name}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Table */}
