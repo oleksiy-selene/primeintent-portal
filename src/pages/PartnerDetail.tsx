@@ -1,4 +1,5 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import {
   useQuery,
   useMutation,
@@ -310,8 +311,6 @@ function PartnerDetailsForm({
   canWrite,
   onSaved,
 }: DetailsFormProps) {
-  // Initialize directly from props — no useEffect sync needed,
-  // so dirty state is never transiently true on first render.
   const [formName, setFormName] = useState(partner.name);
   const [formTypeId, setFormTypeId] = useState(String(partner.partner_type_id));
   const [formStatusId, setFormStatusId] = useState(String(partner.partner_status_id ?? ""));
@@ -320,11 +319,13 @@ function PartnerDetailsForm({
   const qc = useQueryClient();
   const { toast } = useToast();
 
-  const isDirty =
-    formName !== partner.name ||
-    formTypeId !== String(partner.partner_type_id) ||
-    formStatusId !== String(partner.partner_status_id ?? "") ||
-    formPostbackUrl !== (partner.postback_url ?? "");
+  const statusDirty = formStatusId !== String(partner.partner_status_id ?? "");
+  const nameDirty = formName !== partner.name;
+  const typeDirty = formTypeId !== String(partner.partner_type_id);
+  const postbackDirty = formPostbackUrl !== (partner.postback_url ?? "");
+
+  const isDirty = statusDirty || nameDirty || typeDirty || postbackDirty;
+  const dirtyCount = [statusDirty, nameDirty, typeDirty, postbackDirty].filter(Boolean).length;
 
   const savePartner = useMutation({
     mutationFn: async () => {
@@ -357,72 +358,68 @@ function PartnerDetailsForm({
     },
   });
 
-  return (
-    <div className="max-w-xl space-y-6">
-      {/* Read-only IDs */}
-      <div className="space-y-4 bg-white border border-slate-200 rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-          Identifiers
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <Label className="text-xs text-slate-500 mb-1 block">Partner ID</Label>
-            <div className="flex items-center font-mono text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-2">
-              {partner.partner_id}
-              <CopyButton value={String(partner.partner_id)} />
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs text-slate-500 mb-1 block">Partner UID</Label>
-            <div className="flex items-center font-mono text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-2 break-all">
-              {partner.partner_uid}
-              <CopyButton value={partner.partner_uid} />
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs text-slate-500 mb-1 block">Created</Label>
-            <div className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-2">
-              {formatDate(partner.created_at)}
-            </div>
-          </div>
+  function handleDiscard() {
+    setFormName(partner.name);
+    setFormTypeId(String(partner.partner_type_id));
+    setFormStatusId(String(partner.partner_status_id ?? ""));
+    setFormPostbackUrl(partner.postback_url ?? "");
+  }
+
+  function FieldRow({
+    label,
+    dirty,
+    readOnly,
+    children,
+  }: {
+    label: string;
+    dirty?: boolean;
+    readOnly?: boolean;
+    children: ReactNode;
+  }) {
+    return (
+      <div
+        className={cn(
+          "flex items-start py-4 px-6 border-b border-slate-100 transition-colors",
+          dirty ? "bg-amber-50/50" : readOnly ? "bg-slate-50" : "",
+        )}
+      >
+        <div className="w-[200px] shrink-0 pt-[7px] text-sm font-medium text-slate-500 flex items-center gap-2">
+          {label}
+          {dirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />}
         </div>
+        <div className="flex-1 min-w-0">{children}</div>
       </div>
+    );
+  }
 
-      {/* Editable fields */}
-      <div className="space-y-4 bg-white border border-slate-200 rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-          Settings
-        </h3>
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Scrollable rows */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Read-only identifiers — slate-50 background */}
+        <FieldRow label="Partner ID" readOnly>
+          <div className="flex items-center py-1 font-mono text-sm text-slate-700">
+            {partner.partner_id}
+            <CopyButton value={String(partner.partner_id)} />
+          </div>
+        </FieldRow>
 
-        {/* Status — only shown after 002_partner_status migration is applied */}
+        <FieldRow label="Partner UID" readOnly>
+          <div className="flex items-center py-1 font-mono text-sm text-slate-700 break-all">
+            {partner.partner_uid}
+            <CopyButton value={partner.partner_uid} />
+          </div>
+        </FieldRow>
+
+        <FieldRow label="Created" readOnly>
+          <div className="py-1 text-sm text-slate-700">{formatDate(partner.created_at)}</div>
+        </FieldRow>
+
+        {/* Editable fields */}
         {partnerStatuses.length > 0 && (
-          <div className="space-y-1.5">
-            <Label
-              className={`text-sm flex items-center gap-2 ${
-                formStatusId !== String(partner.partner_status_id ?? "")
-                  ? "text-amber-700"
-                  : "text-slate-700"
-              }`}
-            >
-              Status
-              {formStatusId !== String(partner.partner_status_id ?? "") && (
-                <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5 font-medium">
-                  edited
-                </span>
-              )}
-            </Label>
-            <Select
-              value={formStatusId}
-              onValueChange={setFormStatusId}
-              disabled={!canWrite}
-            >
-              <SelectTrigger
-                className={
-                  formStatusId !== String(partner.partner_status_id ?? "")
-                    ? "border-amber-300 ring-1 ring-amber-200"
-                    : ""
-                }
-              >
+          <FieldRow label="Status" dirty={statusDirty}>
+            <Select value={formStatusId} onValueChange={setFormStatusId} disabled={!canWrite}>
+              <SelectTrigger className={cn("w-[240px]", statusDirty && "border-amber-300 bg-amber-50/30")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -433,57 +430,21 @@ function PartnerDetailsForm({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FieldRow>
         )}
 
-        {/* Name */}
-        <div className="space-y-1.5">
-          <Label
-            className={`text-sm flex items-center gap-2 ${
-              formName !== partner.name ? "text-amber-700" : "text-slate-700"
-            }`}
-          >
-            Name
-            {formName !== partner.name && (
-              <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5 font-medium">
-                edited
-              </span>
-            )}
-          </Label>
+        <FieldRow label="Name" dirty={nameDirty}>
           <Input
             value={formName}
             onChange={(e) => setFormName(e.target.value)}
             disabled={!canWrite}
-            className={formName !== partner.name ? "border-amber-300 ring-1 ring-amber-200" : ""}
+            className={cn("max-w-[400px]", nameDirty && "border-amber-300 bg-amber-50/30")}
           />
-        </div>
+        </FieldRow>
 
-        {/* Type */}
-        <div className="space-y-1.5">
-          <Label
-            className={`text-sm flex items-center gap-2 ${
-              formTypeId !== String(partner.partner_type_id) ? "text-amber-700" : "text-slate-700"
-            }`}
-          >
-            Type
-            {formTypeId !== String(partner.partner_type_id) && (
-              <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5 font-medium">
-                edited
-              </span>
-            )}
-          </Label>
-          <Select
-            value={formTypeId}
-            onValueChange={setFormTypeId}
-            disabled={!canWrite}
-          >
-            <SelectTrigger
-              className={
-                formTypeId !== String(partner.partner_type_id)
-                  ? "border-amber-300 ring-1 ring-amber-200"
-                  : ""
-              }
-            >
+        <FieldRow label="Type" dirty={typeDirty}>
+          <Select value={formTypeId} onValueChange={setFormTypeId} disabled={!canWrite}>
+            <SelectTrigger className={cn("w-[240px]", typeDirty && "border-amber-300 bg-amber-50/30")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -494,50 +455,56 @@ function PartnerDetailsForm({
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </FieldRow>
 
-        {/* Postback URL */}
-        <div className="space-y-1.5">
-          <Label
-            className={`text-sm flex items-center gap-2 ${
-              formPostbackUrl !== (partner.postback_url ?? "") ? "text-amber-700" : "text-slate-700"
-            }`}
-          >
-            Postback URL
-            {formPostbackUrl !== (partner.postback_url ?? "") && (
-              <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5 font-medium">
-                edited
-              </span>
-            )}
-          </Label>
-          <Input
-            value={formPostbackUrl}
-            onChange={(e) => setFormPostbackUrl(e.target.value)}
-            placeholder="https://partner.example.com/postback?cid={click_id}"
-            disabled={!canWrite}
-            className={
-              formPostbackUrl !== (partner.postback_url ?? "")
-                ? "border-amber-300 ring-1 ring-amber-200"
-                : ""
-            }
-          />
-          <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md p-3 space-y-1.5">
-            <p className="font-medium text-slate-600">Supported tokens:</p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-              {POSTBACK_TOKENS.map(({ token, desc }) => (
-                <div key={token} className="flex items-center gap-1.5">
-                  <code className="text-indigo-700 bg-indigo-50 px-1 rounded text-[11px]">
-                    {token}
-                  </code>
-                  <span className="text-slate-400 text-[11px] truncate">{desc}</span>
-                </div>
-              ))}
+        <FieldRow label="Postback URL" dirty={postbackDirty}>
+          <div className="space-y-3 py-1">
+            <Input
+              value={formPostbackUrl}
+              onChange={(e) => setFormPostbackUrl(e.target.value)}
+              placeholder="https://partner.example.com/postback?cid={click_id}"
+              disabled={!canWrite}
+              className={cn("font-mono text-sm", postbackDirty && "border-amber-300 bg-amber-50/30")}
+            />
+            <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md p-3 space-y-1.5">
+              <p className="font-medium text-slate-600">Supported tokens:</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {POSTBACK_TOKENS.map(({ token, desc }) => (
+                  <div key={token} className="flex items-center gap-1.5">
+                    <code className="text-indigo-700 bg-indigo-50 px-1 rounded text-[11px]">
+                      {token}
+                    </code>
+                    <span className="text-slate-400 text-[11px] truncate">{desc}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        </FieldRow>
+      </div>
 
-        {canWrite && (
-          <div className="flex justify-end pt-2">
+      {/* Bottom action bar — slides in when there are unsaved changes */}
+      {canWrite && (
+        <div
+          className={cn(
+            "shrink-0 border-t border-slate-200 bg-white flex items-center justify-between px-6 transition-all duration-200 overflow-hidden",
+            isDirty ? "h-16 opacity-100" : "h-0 opacity-0 pointer-events-none",
+          )}
+        >
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-white">
+              {dirtyCount}
+            </span>
+            Unsaved changes
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={handleDiscard}
+              className="text-slate-600 hover:text-slate-900"
+            >
+              Discard
+            </Button>
             <Button
               onClick={() => savePartner.mutate()}
               disabled={!isDirty || savePartner.isPending}
@@ -550,8 +517,8 @@ function PartnerDetailsForm({
               )}
             </Button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -712,7 +679,7 @@ export default function PartnerDetail() {
           </TabsList>
 
           {/* ── Details Tab ── */}
-          <TabsContent value="details" className="flex-1 mt-0">
+          <TabsContent value="details" className="flex-1 mt-0 flex flex-col min-h-0">
             <PartnerDetailsForm
               partner={partner}
               partnerStatuses={partnerStatusesQ.data ?? []}
