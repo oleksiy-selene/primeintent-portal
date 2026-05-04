@@ -5,17 +5,22 @@ export function Header({
   title,
   subtitle,
   right,
+  titleBadge,
 }: {
   title: string;
   subtitle?: ReactNode;
   right?: ReactNode;
+  titleBadge?: ReactNode;
 }) {
   return (
     <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-8 py-4 flex items-center gap-6">
       <div className="flex-1 min-w-0">
-        <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
-          {title}
-        </h1>
+        <div className="flex items-center gap-2.5">
+          <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
+            {title}
+          </h1>
+          {titleBadge}
+        </div>
         {subtitle && (
           <div className="text-sm text-slate-500 mt-0.5">{subtitle}</div>
         )}

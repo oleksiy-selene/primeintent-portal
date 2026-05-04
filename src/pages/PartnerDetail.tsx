@@ -667,10 +667,36 @@ export default function PartnerDetail() {
     );
   }
 
+  const savedStatus = partnerStatusesQ.data?.find(
+    (s) => s.partner_status_id === partner.partner_status_id,
+  );
+
+  function statusBadgeClass(name: string | undefined) {
+    if (!name) return null;
+    const s = name.toLowerCase();
+    if (s === "active") return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    if (s === "paused") return "bg-amber-100 text-amber-700 border-amber-200";
+    return "bg-slate-100 text-slate-600 border-slate-200";
+  }
+
+  const badgeClasses = statusBadgeClass(savedStatus?.name);
+
   return (
     <AppLayout active="partners">
       <Header
         title={partner.name}
+        titleBadge={
+          savedStatus && badgeClasses ? (
+            <span
+              className={cn(
+                "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border",
+                badgeClasses,
+              )}
+            >
+              {savedStatus.name}
+            </span>
+          ) : undefined
+        }
         subtitle={
           <button
             onClick={() => navigate("/partners")}
