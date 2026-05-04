@@ -37,7 +37,7 @@ export function Sidebar({ active }: { active: string }) {
   return (
     <aside className="w-60 shrink-0 bg-slate-950 text-slate-200 flex flex-col h-screen sticky top-0 border-r border-slate-900">
       <div className="px-5 py-5 flex items-center gap-2 border-b border-slate-900">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 border border-indigo-300/30 flex items-center justify-center p-1.5 shrink-0 shadow-md shadow-indigo-900/40">
+        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 border border-indigo-300/30 flex items-center justify-center p-0.5 shrink-0 shadow-md shadow-indigo-900/40">
           <img src="/logo.png" alt="Prime Intent Portal" className="w-full h-full object-contain" />
         </div>
         <div className="flex flex-col leading-tight">
