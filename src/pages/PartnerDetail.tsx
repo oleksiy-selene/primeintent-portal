@@ -264,6 +264,33 @@ async function fetchCampaignStatuses(): Promise<CampaignStatus[]> {
   return (data ?? []) as CampaignStatus[];
 }
 
+function FieldRow({
+  label,
+  dirty,
+  readOnly,
+  children,
+}: {
+  label: string;
+  dirty?: boolean;
+  readOnly?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-start py-4 px-8 border-b border-slate-100 transition-colors group",
+        dirty ? "bg-amber-50/50" : readOnly ? "" : "hover:bg-slate-50/50",
+      )}
+    >
+      <div className="w-[200px] shrink-0 pt-2 text-sm font-medium text-slate-500 flex items-center gap-2">
+        {label}
+        {dirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />}
+      </div>
+      <div className="flex-1 max-w-2xl">{children}</div>
+    </div>
+  );
+}
+
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
@@ -351,33 +378,6 @@ function PartnerDetailsForm({
     setFormTypeId(String(partner.partner_type_id));
     setFormStatusId(String(partner.partner_status_id ?? ""));
     setFormPostbackUrl(partner.postback_url ?? "");
-  }
-
-  function FieldRow({
-    label,
-    dirty,
-    readOnly,
-    children,
-  }: {
-    label: string;
-    dirty?: boolean;
-    readOnly?: boolean;
-    children: ReactNode;
-  }) {
-    return (
-      <div
-        className={cn(
-          "flex items-start py-4 px-8 border-b border-slate-100 transition-colors group",
-          dirty ? "bg-amber-50/50" : readOnly ? "" : "hover:bg-slate-50/50",
-        )}
-      >
-        <div className="w-[200px] shrink-0 pt-2 text-sm font-medium text-slate-500 flex items-center gap-2">
-          {label}
-          {dirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />}
-        </div>
-        <div className="flex-1 max-w-2xl">{children}</div>
-      </div>
-    );
   }
 
   return (
