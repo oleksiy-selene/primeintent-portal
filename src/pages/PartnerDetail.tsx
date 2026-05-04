@@ -379,7 +379,7 @@ function PartnerDetailsForm({
     return (
       <div
         className={cn(
-          "flex items-start py-4 px-6 border-b border-slate-100 transition-colors",
+          "flex items-start py-4 px-8 border-b border-slate-100 transition-colors",
           dirty ? "bg-amber-50/50" : readOnly ? "bg-slate-50" : "",
         )}
       >
@@ -396,91 +396,95 @@ function PartnerDetailsForm({
     <div className="flex flex-col flex-1 min-h-0">
       {/* Scrollable rows */}
       <div className="flex-1 overflow-y-auto">
-        {/* Read-only identifiers — slate-50 background */}
-        <FieldRow label="Partner ID" readOnly>
-          <div className="flex items-center py-1 font-mono text-sm text-slate-700">
-            {partner.partner_id}
-            <CopyButton value={String(partner.partner_id)} />
-          </div>
-        </FieldRow>
+        {/* ── Read-only identifiers — grey background, heavier bottom border ── */}
+        <div className="border-b border-slate-200">
+          <FieldRow label="Partner ID" readOnly>
+            <div className="flex items-center py-1 font-mono text-sm text-slate-700">
+              {partner.partner_id}
+              <CopyButton value={String(partner.partner_id)} />
+            </div>
+          </FieldRow>
 
-        <FieldRow label="Partner UID" readOnly>
-          <div className="flex items-center py-1 font-mono text-sm text-slate-700 break-all">
-            {partner.partner_uid}
-            <CopyButton value={partner.partner_uid} />
-          </div>
-        </FieldRow>
+          <FieldRow label="Partner UID" readOnly>
+            <div className="flex items-center py-1 font-mono text-sm text-slate-700 break-all">
+              {partner.partner_uid}
+              <CopyButton value={partner.partner_uid} />
+            </div>
+          </FieldRow>
 
-        <FieldRow label="Created" readOnly>
-          <div className="py-1 text-sm text-slate-700">{formatDate(partner.created_at)}</div>
-        </FieldRow>
+          <FieldRow label="Created" readOnly>
+            <div className="py-1 text-sm text-slate-700">{formatDate(partner.created_at)}</div>
+          </FieldRow>
+        </div>
 
-        {/* Editable fields */}
-        {partnerStatuses.length > 0 && (
-          <FieldRow label="Status" dirty={statusDirty}>
-            <Select value={formStatusId} onValueChange={setFormStatusId} disabled={!canWrite}>
-              <SelectTrigger className={cn("w-[240px]", statusDirty && "border-amber-300 bg-amber-50/30")}>
+        {/* ── Editable fields — white background, heavier bottom border ── */}
+        <div className="border-b border-slate-200">
+          {partnerStatuses.length > 0 && (
+            <FieldRow label="Status" dirty={statusDirty}>
+              <Select value={formStatusId} onValueChange={setFormStatusId} disabled={!canWrite}>
+                <SelectTrigger className={cn("w-[240px]", statusDirty && "border-amber-300 bg-amber-50/30")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {partnerStatuses.map((s) => (
+                    <SelectItem key={s.partner_status_id} value={String(s.partner_status_id)}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FieldRow>
+          )}
+
+          <FieldRow label="Name" dirty={nameDirty}>
+            <Input
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              disabled={!canWrite}
+              className={cn("max-w-[400px]", nameDirty && "border-amber-300 bg-amber-50/30")}
+            />
+          </FieldRow>
+
+          <FieldRow label="Type" dirty={typeDirty}>
+            <Select value={formTypeId} onValueChange={setFormTypeId} disabled={!canWrite}>
+              <SelectTrigger className={cn("w-[240px]", typeDirty && "border-amber-300 bg-amber-50/30")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {partnerStatuses.map((s) => (
-                  <SelectItem key={s.partner_status_id} value={String(s.partner_status_id)}>
-                    {s.name}
+                {partnerTypes.map((t) => (
+                  <SelectItem key={t.partner_type_id} value={String(t.partner_type_id)}>
+                    {t.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </FieldRow>
-        )}
 
-        <FieldRow label="Name" dirty={nameDirty}>
-          <Input
-            value={formName}
-            onChange={(e) => setFormName(e.target.value)}
-            disabled={!canWrite}
-            className={cn("max-w-[400px]", nameDirty && "border-amber-300 bg-amber-50/30")}
-          />
-        </FieldRow>
-
-        <FieldRow label="Type" dirty={typeDirty}>
-          <Select value={formTypeId} onValueChange={setFormTypeId} disabled={!canWrite}>
-            <SelectTrigger className={cn("w-[240px]", typeDirty && "border-amber-300 bg-amber-50/30")}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {partnerTypes.map((t) => (
-                <SelectItem key={t.partner_type_id} value={String(t.partner_type_id)}>
-                  {t.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FieldRow>
-
-        <FieldRow label="Postback URL" dirty={postbackDirty}>
-          <div className="space-y-3 py-1">
-            <Input
-              value={formPostbackUrl}
-              onChange={(e) => setFormPostbackUrl(e.target.value)}
-              placeholder="https://partner.example.com/postback?cid={click_id}"
-              disabled={!canWrite}
-              className={cn("font-mono text-sm", postbackDirty && "border-amber-300 bg-amber-50/30")}
-            />
-            <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md p-3 space-y-1.5">
-              <p className="font-medium text-slate-600">Supported tokens:</p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                {POSTBACK_TOKENS.map(({ token, desc }) => (
-                  <div key={token} className="flex items-center gap-1.5">
-                    <code className="text-indigo-700 bg-indigo-50 px-1 rounded text-[11px]">
-                      {token}
-                    </code>
-                    <span className="text-slate-400 text-[11px] truncate">{desc}</span>
-                  </div>
-                ))}
+          <FieldRow label="Postback URL" dirty={postbackDirty}>
+            <div className="space-y-3 py-1">
+              <Input
+                value={formPostbackUrl}
+                onChange={(e) => setFormPostbackUrl(e.target.value)}
+                placeholder="https://partner.example.com/postback?cid={click_id}"
+                disabled={!canWrite}
+                className={cn("font-mono text-sm", postbackDirty && "border-amber-300 bg-amber-50/30")}
+              />
+              <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md p-3 space-y-1.5">
+                <p className="font-medium text-slate-600">Supported tokens:</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                  {POSTBACK_TOKENS.map(({ token, desc }) => (
+                    <div key={token} className="flex items-center gap-1.5">
+                      <code className="text-indigo-700 bg-indigo-50 px-1 rounded text-[11px]">
+                        {token}
+                      </code>
+                      <span className="text-slate-400 text-[11px] truncate">{desc}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </FieldRow>
+          </FieldRow>
+        </div>
       </div>
 
       {/* Bottom action bar — slides in when there are unsaved changes */}
@@ -664,11 +668,19 @@ export default function PartnerDetail() {
         }
       />
 
-      <div className="flex-1 p-8 min-h-0 flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col">
         <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="w-fit mb-6">
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="campaigns">
+          <TabsList className="flex w-full items-center gap-6 border-b border-slate-200 rounded-none bg-transparent p-0 h-auto px-8 pt-6">
+            <TabsTrigger
+              value="details"
+              className="pb-3 text-sm font-medium rounded-none border-b-2 shadow-none bg-transparent px-0 data-[state=active]:border-indigo-500 data-[state=active]:text-indigo-600 data-[state=active]:bg-transparent data-[state=inactive]:border-transparent data-[state=inactive]:text-slate-500 hover:text-slate-700"
+            >
+              Details
+            </TabsTrigger>
+            <TabsTrigger
+              value="campaigns"
+              className="pb-3 text-sm font-medium rounded-none border-b-2 shadow-none bg-transparent px-0 data-[state=active]:border-indigo-500 data-[state=active]:text-indigo-600 data-[state=active]:bg-transparent data-[state=inactive]:border-transparent data-[state=inactive]:text-slate-500 hover:text-slate-700"
+            >
               Campaigns
               {campaignRows.length > 0 && (
                 <span className="ml-1.5 text-xs bg-slate-200 text-slate-600 rounded-full px-1.5 py-0.5">
@@ -691,7 +703,7 @@ export default function PartnerDetail() {
 
           {/* ── Campaigns Tab ── */}
           <TabsContent value="campaigns" className="flex-1 flex flex-col min-h-0 mt-0">
-            <div className="flex-1 flex flex-col gap-4 min-h-0">
+            <div className="flex-1 flex flex-col gap-4 min-h-0 p-8">
               {/* Toolbar */}
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
