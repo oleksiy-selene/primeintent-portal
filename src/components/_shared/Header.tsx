@@ -104,9 +104,13 @@ export function Header({
                         : "text-slate-700",
                     )}
                   >
-                    <span className="min-w-0 truncate">{t.label}</span>
-                    <span className="flex items-center gap-2 shrink-0 text-xs font-medium text-slate-400 tabular-nums">
-                      <span>GMT{offset}</span>
+                    <span className="min-w-0 flex items-center gap-2 pl-5">
+                      <span className="truncate">{t.label}</span>
+                      <span className="text-xs font-medium text-slate-400 whitespace-nowrap">
+                        GMT{offset}
+                      </span>
+                    </span>
+                    <span className="w-5 shrink-0 flex items-center justify-center">
                       {t.value === tz && (
                         <Check className="w-3.5 h-3.5 text-indigo-600" />
                       )}
