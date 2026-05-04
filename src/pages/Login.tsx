@@ -115,7 +115,9 @@ export default function Login() {
             <Shield className="w-6 h-6 text-white" strokeWidth={2.5} />
           </div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
-            {forgotMode ? "Reset your password" : "Sign in to InsureMatch"}
+            {forgotMode
+              ? "Reset your password"
+              : "Sign in to Prime Intent Portal"}
           </h1>
           <p className="text-slate-500 text-sm">
             {forgotMode

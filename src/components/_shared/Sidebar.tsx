@@ -43,7 +43,7 @@ export function Sidebar({ active }: { active: string }) {
         </div>
         <div className="flex flex-col leading-tight">
           <span className="text-sm font-semibold text-white tracking-tight">
-            InsureMatch
+            Prime Intent Portal
           </span>
           <span className="text-[10px] uppercase tracking-wider text-slate-500">
             Admin Portal

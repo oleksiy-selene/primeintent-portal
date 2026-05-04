@@ -1,6 +1,6 @@
-# InsureMatch Portal — Setup Guide
+# Prime Intent Portal — Setup Guide
 
-This is the standalone InsureMatch admin portal for `portal.primeintent.ai`.
+This is the standalone Prime Intent Portal admin portal for `portal.primeintent.ai`.
 
 ## 1. Create a new Replit project
 
