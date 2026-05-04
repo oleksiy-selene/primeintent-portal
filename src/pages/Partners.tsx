@@ -370,7 +370,7 @@ export default function Partners() {
         }
       />
       <div className="flex-1 p-8 min-h-0 flex flex-col gap-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 max-w-5xl">
           <div className="flex items-center gap-3">
             <div className="relative w-72">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -401,10 +401,7 @@ export default function Partners() {
               </SelectContent>
             </Select>
           </div>
-        </div>
-
-        <div className="flex items-center justify-between max-w-5xl">
-          <p className="text-sm text-slate-500">
+          <p className="ml-auto text-sm text-slate-500 whitespace-nowrap">
             Showing{" "}
             <span className="font-medium text-slate-900">{rows.length}</span>{" "}
             partner{rows.length === 1 ? "" : "s"}
