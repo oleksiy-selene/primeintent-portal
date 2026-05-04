@@ -28,8 +28,12 @@ export async function inviteUser(
   email: string,
   role: "admin" | "manager" | "viewer",
 ) {
+  // redirectTo tells the backend to forward this value to Supabase's
+  // admin.inviteUserByEmail({ redirectTo }) so the invite email lands
+  // the user on our /welcome page instead of the default Supabase page.
+  const redirectTo = `${window.location.origin}/welcome`;
   return authedFetch("/admin/invite", {
     method: "POST",
-    body: JSON.stringify({ email, role }),
+    body: JSON.stringify({ email, role, redirectTo }),
   });
 }

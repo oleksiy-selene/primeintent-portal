@@ -6,6 +6,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { RequireAuth } from "@/components/RequireAuth";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
+import Welcome from "@/pages/Welcome";
+import ResetPassword from "@/pages/ResetPassword";
 import Dashboard from "@/pages/Dashboard";
 import Partners from "@/pages/Partners";
 import PartnerDetail from "@/pages/PartnerDetail";
@@ -26,6 +28,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/welcome" component={Welcome} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/">
         <RequireAuth>
           <Dashboard />
