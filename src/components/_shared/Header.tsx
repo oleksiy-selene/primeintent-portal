@@ -24,7 +24,10 @@ export function Header({
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     }
@@ -33,7 +36,10 @@ export function Header({
   }, [open]);
 
   async function handleSelectTz(value: string) {
-    if (value === tz) { setOpen(false); return; }
+    if (value === tz) {
+      setOpen(false);
+      return;
+    }
     setSaving(true);
     try {
       await setTimezone(value);
@@ -44,7 +50,7 @@ export function Header({
   }
 
   return (
-    <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-8 py-4 flex items-center gap-6">
+    <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-8 py-4 flex items-center gap-6">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2.5">
           <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
@@ -55,16 +61,6 @@ export function Header({
         {subtitle && (
           <div className="text-sm text-slate-500 mt-0.5">{subtitle}</div>
         )}
-      </div>
-      <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-md w-72">
-        <Search className="w-4 h-4 text-slate-400" />
-        <input
-          className="bg-transparent outline-none text-sm flex-1 placeholder:text-slate-400"
-          placeholder="Search…"
-        />
-        <kbd className="text-[10px] text-slate-400 border border-slate-200 rounded px-1.5 py-0.5">
-          ⌘K
-        </kbd>
       </div>
 
       <div ref={popoverRef} className="relative">
@@ -87,7 +83,9 @@ export function Header({
                 onClick={() => void handleSelectTz(t.value)}
                 className={cn(
                   "w-full text-left px-4 py-2 text-sm flex items-center justify-between hover:bg-slate-50 transition-colors",
-                  t.value === tz ? "text-indigo-600 font-medium" : "text-slate-700",
+                  t.value === tz
+                    ? "text-indigo-600 font-medium"
+                    : "text-slate-700",
                 )}
               >
                 <span>{t.label}</span>
@@ -97,11 +95,6 @@ export function Header({
           </div>
         )}
       </div>
-
-      <button className="relative p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-50 rounded-md">
-        <Bell className="w-4 h-4" />
-        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-rose-500" />
-      </button>
       {right}
     </header>
   );

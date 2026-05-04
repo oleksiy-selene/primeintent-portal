@@ -591,7 +591,7 @@ export default function Partners() {
                     activeSortKey={sortKey}
                     activeSortDir={sortDir}
                     onSort={(k) => toggleSort(k as PartnersSortKey)}
-                    className="w-[120px]"
+                    className="w-[120px] pl-6"
                   />
                   <SortableHeader
                     label="Partner"
@@ -613,7 +613,7 @@ export default function Partners() {
                   <TableHead className="text-right w-[100px]">Revenue</TableHead>
                   <TableHead className="text-right w-[100px]">Cost</TableHead>
                   <TableHead className="text-right w-[100px]">Profit</TableHead>
-                  <TableHead className="text-right w-[160px]">Campaigns</TableHead>
+                  <TableHead className="text-right w-[160px] pr-6">Campaigns</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -642,7 +642,7 @@ export default function Partners() {
                       className="group hover:bg-slate-50/80 cursor-pointer transition-colors"
                       onClick={() => navigate(`/partners/${p.partner_id}`)}
                     >
-                      <TableCell className="text-xs text-slate-500">
+                      <TableCell className="text-xs text-slate-500 pl-6">
                         <div>{formatDate(p.created_at)}</div>
                         <div className="mt-0.5">{formatTime(p.created_at)}</div>
                       </TableCell>
@@ -706,7 +706,7 @@ export default function Partners() {
                           </span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right pr-6">
                         <div className="flex items-center justify-end">
                           <button
                             type="button"

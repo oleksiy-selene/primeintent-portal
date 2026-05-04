@@ -11,13 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Download,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  Loader2,
-} from "lucide-react";
+import { Download, CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react";
 
 interface KpiData {
   visitors: number;
@@ -47,9 +41,7 @@ async function fetchKpis(days: number): Promise<KpiData> {
     // Revenue counts only `approved` conversions per spec.
     supabase
       .from("visitor_conversions")
-      .select(
-        "payout_amount, created_at, enum_conversion_status!inner(name)",
-      )
+      .select("payout_amount, created_at, enum_conversion_status!inner(name)")
       .gte("created_at", since),
     supabase
       .from("campaign_expenses")
@@ -73,10 +65,7 @@ async function fetchKpis(days: number): Promise<KpiData> {
   return {
     visitors: visitorsRes.count ?? 0,
     conversions: approved.length,
-    revenue: approved.reduce(
-      (s, r) => s + Number(r.payout_amount ?? 0),
-      0,
-    ),
+    revenue: approved.reduce((s, r) => s + Number(r.payout_amount ?? 0), 0),
     cost: expenses.reduce(
       (s, r) => s + Number((r as { amount: number }).amount ?? 0),
       0,
@@ -97,7 +86,9 @@ interface RecentConversion {
   } | null;
 }
 
-async function fetchRecentConversions(_days: number): Promise<RecentConversion[]> {
+async function fetchRecentConversions(
+  _days: number,
+): Promise<RecentConversion[]> {
   const { data, error } = await supabase
     .from("visitor_conversions")
     .select(
@@ -217,8 +208,7 @@ export default function Dashboard() {
   const rangeLabel =
     RANGE_OPTIONS.find((o) => o.value === rangeDays)?.label ?? "Last 30 days";
 
-  const profit =
-    (kpis.data?.revenue ?? 0) - (kpis.data?.cost ?? 0);
+  const profit = (kpis.data?.revenue ?? 0) - (kpis.data?.cost ?? 0);
   const maxRevenue = Math.max(1, ...(top.data ?? []).map((c) => c.revenue));
 
   return (
@@ -240,10 +230,6 @@ export default function Dashboard() {
                 ))}
               </SelectContent>
             </Select>
-            <button className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 shadow-sm">
-              <Download className="w-4 h-4 text-slate-500" />
-              <span>Export</span>
-            </button>
           </div>
         }
       />
@@ -395,7 +381,10 @@ export default function Dashboard() {
               <tbody className="divide-y divide-slate-100">
                 {recent.isLoading && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-slate-400">
+                    <td
+                      colSpan={5}
+                      className="px-6 py-10 text-center text-slate-400"
+                    >
                       <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
                       Loading…
                     </td>
@@ -403,14 +392,16 @@ export default function Dashboard() {
                 )}
                 {recent.data?.length === 0 && !recent.isLoading && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-slate-400">
+                    <td
+                      colSpan={5}
+                      className="px-6 py-10 text-center text-slate-400"
+                    >
                       No conversions yet.
                     </td>
                   </tr>
                 )}
                 {recent.data?.map((cv) => {
-                  const status =
-                    cv.enum_conversion_status?.name ?? "pending";
+                  const status = cv.enum_conversion_status?.name ?? "pending";
                   return (
                     <tr
                       key={cv.visitor_conversion_id}
