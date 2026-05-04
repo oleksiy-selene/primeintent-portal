@@ -331,6 +331,24 @@ function PartnerDetailsForm({
   const [formStatusId, setFormStatusId] = useState(String(partner.partner_status_id ?? ""));
   const [formPostbackUrl, setFormPostbackUrl] = useState(partner.postback_url ?? "");
 
+  const postbackInputRef = useRef<HTMLInputElement>(null);
+
+  function insertToken(token: string) {
+    const el = postbackInputRef.current;
+    if (!el) {
+      setFormPostbackUrl((prev) => prev + token);
+      return;
+    }
+    const start = el.selectionStart ?? formPostbackUrl.length;
+    const end = el.selectionEnd ?? formPostbackUrl.length;
+    const next = formPostbackUrl.slice(0, start) + token + formPostbackUrl.slice(end);
+    setFormPostbackUrl(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start + token.length, start + token.length);
+    });
+  }
+
   const qc = useQueryClient();
   const { toast } = useToast();
 
@@ -450,6 +468,7 @@ function PartnerDetailsForm({
           <FieldRow label="Postback URL" dirty={postbackDirty}>
             <div className="space-y-4 py-2">
               <Input
+                ref={postbackInputRef}
                 value={formPostbackUrl}
                 onChange={(e) => setFormPostbackUrl(e.target.value)}
                 placeholder="https://partner.example.com/postback?cid={click_id}"
@@ -463,9 +482,15 @@ function PartnerDetailsForm({
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                   {POSTBACK_TOKENS.map(({ token, desc }) => (
                     <div key={token} className="flex items-center gap-2 text-sm">
-                      <code className="text-xs bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-mono">
+                      <button
+                        type="button"
+                        disabled={!canWrite}
+                        onClick={() => insertToken(token)}
+                        className="text-xs bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-mono hover:bg-indigo-100 hover:text-indigo-700 active:bg-indigo-200 transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50"
+                        title={`Insert ${token}`}
+                      >
                         {token}
-                      </code>
+                      </button>
                       <span className="text-slate-500 text-xs truncate">{desc}</span>
                     </div>
                   ))}
