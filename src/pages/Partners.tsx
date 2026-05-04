@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
+import { cn } from "@/lib/utils";
 import {
   useInfiniteQuery,
   useQuery,
@@ -58,7 +59,7 @@ function UidCopy({ uid }: { uid: string }) {
             setTimeout(() => setCopied(false), 1500);
           });
         }}
-        className="text-slate-300 hover:text-indigo-500 transition-colors"
+        className="text-slate-400 hover:text-indigo-500 transition-colors"
         title="Copy full UID"
       >
         {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
@@ -79,9 +80,11 @@ interface PartnerRow {
   partner_uid: string;
   name: string;
   partner_type_id: number;
+  partner_status_id: number | null;
   postback_url: string | null;
   created_at: string;
   enum_partner_type: { name: string } | null;
+  enum_partner_status: { name: string } | null;
   campaigns: { count: number }[] | null;
 }
 
@@ -107,9 +110,11 @@ async function fetchPartnersPage(
       partner_uid,
       name,
       partner_type_id,
+      partner_status_id,
       postback_url,
       created_at,
       enum_partner_type:enum_partner_type!partners_partner_type_id_fkey ( name ),
+      enum_partner_status:enum_partner_status!partners_partner_status_id_fkey ( name ),
       campaigns!campaigns_partner_id_fkey ( count )
     `,
     )
@@ -396,11 +401,14 @@ export default function Partners() {
               </SelectContent>
             </Select>
           </div>
-          <div className="text-sm text-slate-500">
+        </div>
+
+        <div className="flex items-center justify-between max-w-5xl">
+          <p className="text-sm text-slate-500">
             Showing{" "}
             <span className="font-medium text-slate-900">{rows.length}</span>{" "}
             partner{rows.length === 1 ? "" : "s"}
-          </div>
+          </p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex-1 min-h-0 flex flex-col max-w-5xl">
@@ -463,9 +471,24 @@ export default function Partners() {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col min-w-0">
-                          <span className="font-medium text-slate-900 truncate">
-                            {p.name}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-slate-900 truncate">
+                              {p.name}
+                            </span>
+                            {p.enum_partner_status?.name && (
+                              <span
+                                className={cn(
+                                  "w-2 h-2 rounded-full shrink-0",
+                                  p.enum_partner_status.name.toLowerCase() === "active"
+                                    ? "bg-emerald-400"
+                                    : p.enum_partner_status.name.toLowerCase() === "paused"
+                                      ? "bg-amber-400"
+                                      : "bg-slate-300",
+                                )}
+                                title={p.enum_partner_status.name}
+                              />
+                            )}
+                          </div>
                           <span className="text-xs text-slate-500">
                             <UidCopy uid={p.partner_uid} />
                           </span>
