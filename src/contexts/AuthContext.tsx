@@ -14,6 +14,7 @@ export interface Profile {
   email: string;
   display_name: string | null;
   role: "admin" | "manager" | "viewer";
+  timezone: string;
   created_at: string;
 }
 
@@ -25,6 +26,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  setTimezone: (tz: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -41,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const { data, error } = await supabase
       .from("profiles")
-      .select("user_id, email, display_name, role, created_at")
+      .select("user_id, email, display_name, role, timezone, created_at")
       .eq("user_id", userId)
       .maybeSingle();
     if (error) {
@@ -49,7 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null);
       return;
     }
-    setProfile((data as Profile | null) ?? null);
+    const raw = data as (Profile & { timezone?: string | null }) | null;
+    setProfile(raw ? { ...raw, timezone: raw.timezone ?? "America/New_York" } : null);
   };
 
   useEffect(() => {
@@ -101,6 +104,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       refreshProfile: async () => {
         await loadProfile(session?.user.id ?? null);
+      },
+      setTimezone: async (tz: string) => {
+        const userId = session?.user.id;
+        if (!userId) return;
+        const { error } = await supabase
+          .from("profiles")
+          .update({ timezone: tz })
+          .eq("user_id", userId);
+        if (error) throw error;
+        setProfile((prev) => (prev ? { ...prev, timezone: tz } : prev));
       },
     }),
     [session, profile, loading],

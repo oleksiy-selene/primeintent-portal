@@ -1,5 +1,7 @@
 import { useMemo, useState, useEffect, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { DateRangePicker, type DateRange } from "@/components/_shared/DateRangePicker";
+import { getPresetRange } from "@/lib/dateRange";
 import {
   useQuery,
   useMutation,
@@ -116,9 +118,6 @@ const POSTBACK_TOKENS = [
   { token: "{subid2}", desc: "Sub-ID 2 from click" },
 ];
 
-function rangeStartIso(days: number) {
-  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-}
 
 async function fetchPartner(partnerId: number): Promise<Partner> {
   const baseSelect = `
@@ -213,21 +212,21 @@ async function fetchCampaignsForPartner(
   return { rows, hasMore: rows.length === PAGE_SIZE };
 }
 
-async function fetchPerformance(campaignIds: number[], days: number): Promise<Map<number, PerfTotals>> {
+async function fetchPerformance(campaignIds: number[], range: { from: string; to: string }): Promise<Map<number, PerfTotals>> {
   const result = new Map<number, PerfTotals>();
   campaignIds.forEach((id) => result.set(id, { visitors: 0, revenue: 0, cost: 0 }));
   if (campaignIds.length === 0) return result;
-  const since = rangeStartIso(days);
 
   const [visitorsRes, conversionsRes, expensesRes] = await Promise.all([
-    supabase.from("visitors").select("campaign_id").in("campaign_id", campaignIds).gte("created_at", since),
+    supabase.from("visitors").select("campaign_id").in("campaign_id", campaignIds).gte("created_at", range.from).lte("created_at", range.to),
     supabase
       .from("visitor_conversions")
       .select(`payout_amount, enum_conversion_status!inner ( name ), visitors!inner ( campaign_id )`)
       .eq("enum_conversion_status.name", "approved")
       .in("visitors.campaign_id", campaignIds)
-      .gte("created_at", since),
-    supabase.from("campaign_expenses").select("campaign_id, amount").in("campaign_id", campaignIds).gte("start_time", since),
+      .gte("created_at", range.from)
+      .lte("created_at", range.to),
+    supabase.from("campaign_expenses").select("campaign_id, amount").in("campaign_id", campaignIds).gte("start_time", range.from).lte("start_time", range.to),
   ]);
 
   if (visitorsRes.error) throw visitorsRes.error;
@@ -606,9 +605,13 @@ export default function PartnerDetail() {
 
   const visibleIds = useMemo(() => campaignRows.map((c) => c.campaign_id), [campaignRows]);
 
+  const [dateRange, setDateRange] = useState<DateRange>(() =>
+    getPresetRange("today", "America/New_York"),
+  );
+
   const performanceQ = useQuery({
-    queryKey: ["partner-campaign-performance", visibleIds],
-    queryFn: () => fetchPerformance(visibleIds, 30),
+    queryKey: ["partner-campaign-performance", visibleIds, dateRange.from, dateRange.to],
+    queryFn: () => fetchPerformance(visibleIds, dateRange),
     enabled: visibleIds.length > 0,
   });
 
@@ -774,6 +777,7 @@ export default function PartnerDetail() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <DateRangePicker value={dateRange} onChange={setDateRange} />
                 </div>
                 {canWrite && (
                   <Button

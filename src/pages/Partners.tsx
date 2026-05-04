@@ -1,5 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
+import { DateRangePicker, type DateRange } from "@/components/_shared/DateRangePicker";
+import { getPresetRange } from "@/lib/dateRange";
 import {
   useInfiniteQuery,
   useQuery,
@@ -177,6 +179,7 @@ async function fetchPartnerStatuses(): Promise<PartnerStatus[]> {
 
 async function fetchPartnerPerf(
   partnerIds: number[],
+  range: { from: string; to: string },
 ): Promise<Map<number, PerfTotals>> {
   const result = new Map<number, PerfTotals>();
   partnerIds.forEach((id) => result.set(id, { visitors: 0, revenue: 0, cost: 0 }));
@@ -203,18 +206,24 @@ async function fetchPartnerPerf(
     supabase
       .from("visitors")
       .select("campaign_id")
-      .in("campaign_id", campaignIds),
+      .in("campaign_id", campaignIds)
+      .gte("created_at", range.from)
+      .lte("created_at", range.to),
     supabase
       .from("visitor_conversions")
       .select(
         `payout_amount, enum_conversion_status!inner ( name ), visitors!inner ( campaign_id )`,
       )
       .eq("enum_conversion_status.name", "approved")
-      .in("visitors.campaign_id", campaignIds),
+      .in("visitors.campaign_id", campaignIds)
+      .gte("created_at", range.from)
+      .lte("created_at", range.to),
     supabase
       .from("campaign_expenses")
       .select("campaign_id, amount")
-      .in("campaign_id", campaignIds),
+      .in("campaign_id", campaignIds)
+      .gte("start_time", range.from)
+      .lte("start_time", range.to),
   ]);
 
   for (const v of (visitorsRes.data ?? []) as Array<{ campaign_id: number }>) {
@@ -461,9 +470,13 @@ export default function Partners() {
 
   const partnerIds = useMemo(() => rows.map((r) => r.partner_id), [rows]);
 
+  const [dateRange, setDateRange] = useState<DateRange>(() =>
+    getPresetRange("today", "America/New_York"),
+  );
+
   const perf = useQuery({
-    queryKey: ["partner-perf", partnerIds],
-    queryFn: () => fetchPartnerPerf(partnerIds),
+    queryKey: ["partner-perf", partnerIds, dateRange.from, dateRange.to],
+    queryFn: () => fetchPartnerPerf(partnerIds, dateRange),
     enabled: partnerIds.length > 0,
     staleTime: 60_000,
   });
@@ -550,6 +563,7 @@ export default function Partners() {
               ))}
             </SelectContent>
           </Select>
+          <DateRangePicker value={dateRange} onChange={setDateRange} />
           <p className="ml-auto text-sm text-slate-500 whitespace-nowrap">
             Showing{" "}
             <span className="font-medium text-slate-900">{rows.length}</span>{" "}
