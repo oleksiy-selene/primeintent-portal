@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { DateRangeProvider } from "@/contexts/DateRangeContext";
 import { RequireAuth } from "@/components/RequireAuth";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
@@ -69,12 +70,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <DateRangeProvider>
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>
           <Toaster />
         </TooltipProvider>
+        </DateRangeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
