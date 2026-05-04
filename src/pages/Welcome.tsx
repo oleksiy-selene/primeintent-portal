@@ -71,12 +71,18 @@ export default function Welcome() {
     setError(null);
     setSubmitting(true);
     try {
-      const { error: updateError } = await supabase.auth.updateUser({ password });
+      const { error: updateError } = await supabase.auth.updateUser({
+        password,
+      });
       if (updateError) throw updateError;
       setDone(true);
       setTimeout(() => navigate("/", { replace: true }), 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to set password. Try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to set password. Try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -98,7 +104,7 @@ export default function Welcome() {
             <Shield className="w-6 h-6 text-white" strokeWidth={2.5} />
           </div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
-            Welcome to InsureMatch
+            Welcome
           </h1>
           <p className="text-slate-500 text-sm text-center">
             Set a password to finish activating your account.
@@ -110,12 +116,17 @@ export default function Welcome() {
             <div className="flex flex-col items-center gap-3 py-4 text-center">
               <CheckCircle2 className="w-10 h-10 text-emerald-500" />
               <p className="font-semibold text-slate-900">Password set!</p>
-              <p className="text-sm text-slate-500">Taking you to the dashboard…</p>
+              <p className="text-sm text-slate-500">
+                Taking you to the dashboard…
+              </p>
             </div>
           ) : (
             <form className="space-y-5" onSubmit={onSubmit}>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-slate-700">
+                <Label
+                  htmlFor="password"
+                  className="text-sm font-medium text-slate-700"
+                >
                   New password
                 </Label>
                 <div className="relative">
@@ -136,13 +147,20 @@ export default function Welcome() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirm" className="text-sm font-medium text-slate-700">
+                <Label
+                  htmlFor="confirm"
+                  className="text-sm font-medium text-slate-700"
+                >
                   Confirm password
                 </Label>
                 <div className="relative">
@@ -163,7 +181,11 @@ export default function Welcome() {
                     onClick={() => setShowConfirm(!showConfirm)}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
                   >
-                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showConfirm ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -179,7 +201,11 @@ export default function Welcome() {
                 disabled={submitting}
                 className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-md shadow-indigo-600/20"
               >
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Set password & continue"}
+                {submitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Set password & continue"
+                )}
               </Button>
             </form>
           )}

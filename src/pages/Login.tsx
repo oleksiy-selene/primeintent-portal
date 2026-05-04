@@ -1,12 +1,27 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
-import { Mail, Lock, Eye, EyeOff, Shield, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Shield,
+  Loader2,
+  ArrowLeft,
+  CheckCircle2,
+} from "lucide-react";
 import { FaGoogle, FaApple, FaFacebook, FaMicrosoft } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const OAUTH_PROVIDERS = [
   { id: "google" as const, label: "Google", Icon: FaGoogle },
@@ -77,7 +92,9 @@ export default function Login() {
       setResetSent(true);
     } catch (err) {
       setResetError(
-        err instanceof Error ? err.message : "Failed to send reset email. Try again.",
+        err instanceof Error
+          ? err.message
+          : "Failed to send reset email. Try again.",
       );
     } finally {
       setResetSubmitting(false);
@@ -115,7 +132,10 @@ export default function Login() {
                 <p className="font-semibold text-slate-900">Check your inbox</p>
                 <p className="text-sm text-slate-500">
                   A password reset link has been sent to{" "}
-                  <span className="font-medium text-slate-700">{resetEmail}</span>.
+                  <span className="font-medium text-slate-700">
+                    {resetEmail}
+                  </span>
+                  .
                 </p>
                 <button
                   type="button"
@@ -133,7 +153,10 @@ export default function Login() {
             ) : (
               <form className="space-y-5" onSubmit={onResetSubmit}>
                 <div className="space-y-2">
-                  <Label htmlFor="reset-email" className="text-sm font-medium text-slate-700">
+                  <Label
+                    htmlFor="reset-email"
+                    className="text-sm font-medium text-slate-700"
+                  >
                     Email address
                   </Label>
                   <div className="relative">
@@ -172,7 +195,10 @@ export default function Login() {
 
                 <button
                   type="button"
-                  onClick={() => { setForgotMode(false); setResetError(null); }}
+                  onClick={() => {
+                    setForgotMode(false);
+                    setResetError(null);
+                  }}
                   className="w-full text-sm text-slate-500 hover:text-slate-700 flex items-center justify-center gap-1 pt-1"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
@@ -216,7 +242,10 @@ export default function Login() {
                     </Label>
                     <button
                       type="button"
-                      onClick={() => { setForgotMode(true); setError(null); }}
+                      onClick={() => {
+                        setForgotMode(true);
+                        setError(null);
+                      }}
                       className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
                     >
                       Forgot password?
@@ -279,20 +308,26 @@ export default function Login() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                {OAUTH_PROVIDERS.map(({ id, label, Icon }) => (
-                  <Button
-                    key={id}
-                    type="button"
-                    variant="outline"
-                    onClick={() => void onOAuth(id)}
-                    className="h-10 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50"
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="text-sm">{label}</span>
-                  </Button>
-                ))}
-              </div>
+              <TooltipProvider>
+                <div className="grid grid-cols-2 gap-2">
+                  {OAUTH_PROVIDERS.map(({ id, label, Icon }) => (
+                    <Tooltip key={id}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled
+                          className="h-10 gap-2 border-slate-200 text-slate-400 cursor-not-allowed opacity-70"
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span className="text-sm">{label}</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Not implemented yet</TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+              </TooltipProvider>
             </>
           )}
         </div>
