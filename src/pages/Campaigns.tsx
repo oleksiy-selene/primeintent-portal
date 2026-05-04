@@ -33,7 +33,11 @@ import {
 import { Plus, Search, Loader2, Edit2 } from "lucide-react";
 import { num, usd, formatDate } from "@/lib/format";
 
-type CampaignsSortKey = "name" | "partner_id" | "campaign_status_id" | "created_at";
+type CampaignsSortKey =
+  | "name"
+  | "partner_id"
+  | "campaign_status_id"
+  | "created_at";
 
 interface CampaignRow {
   campaign_id: number;
@@ -122,7 +126,9 @@ async function fetchCampaignsPage(
       ascending: filter.sortDir === "asc",
     });
   } else {
-    query = query.order(filter.sortKey, { ascending: filter.sortDir === "asc" });
+    query = query.order(filter.sortKey, {
+      ascending: filter.sortDir === "asc",
+    });
   }
 
   if (filter.partnerFilter !== "all") {
@@ -225,8 +231,7 @@ async function fetchPartnerOptions(): Promise<PartnerOption[]> {
 
 export default function Campaigns() {
   const { profile } = useAuth();
-  const canWrite =
-    profile?.role === "admin" || profile?.role === "manager";
+  const canWrite = profile?.role === "admin" || profile?.role === "manager";
   const qc = useQueryClient();
 
   const [partnerFilter, setPartnerFilter] = useState("all");
@@ -238,10 +243,8 @@ export default function Campaigns() {
 
   const days = Number(rangeDays);
 
-  const { sortKey, sortDir, toggleSort, resetSort } = useSortState<CampaignsSortKey>(
-    "created_at",
-    "desc",
-  );
+  const { sortKey, sortDir, toggleSort, resetSort } =
+    useSortState<CampaignsSortKey>("created_at", "desc");
 
   const filter: CampaignsFilter = {
     partnerFilter,
@@ -274,10 +277,7 @@ export default function Campaigns() {
     [campaigns.data],
   );
 
-  const visibleIds = useMemo(
-    () => rows.map((c) => c.campaign_id),
-    [rows],
-  );
+  const visibleIds = useMemo(() => rows.map((c) => c.campaign_id), [rows]);
 
   const performance = useQuery({
     queryKey: ["campaign-performance", visibleIds, days],
@@ -294,7 +294,11 @@ export default function Campaigns() {
     if (!el) return;
     const obs = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting && campaigns.hasNextPage && !campaigns.isFetchingNextPage) {
+        if (
+          entries[0]?.isIntersecting &&
+          campaigns.hasNextPage &&
+          !campaigns.isFetchingNextPage
+        ) {
           void campaigns.fetchNextPage();
         }
       },
@@ -327,7 +331,26 @@ export default function Campaigns() {
 
       <div className="flex-1 p-8 space-y-6 flex flex-col min-h-0">
         <div className="flex items-center gap-3 flex-wrap">
-          <Select value={partnerFilter} onValueChange={(v) => { setPartnerFilter(v); if (v === "all") resetSort(); }}>
+          <div className="relative w-64">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                if (e.target.value === "") resetSort();
+              }}
+              placeholder="Search campaigns..."
+              className="pl-9 bg-white"
+            />
+          </div>
+
+          <Select
+            value={partnerFilter}
+            onValueChange={(v) => {
+              setPartnerFilter(v);
+              if (v === "all") resetSort();
+            }}
+          >
             <SelectTrigger className="w-[220px] bg-white">
               <SelectValue placeholder="Partner" />
             </SelectTrigger>
@@ -341,29 +364,13 @@ export default function Campaigns() {
             </SelectContent>
           </Select>
 
-          <Select value={rangeDays} onValueChange={setRangeDays}>
-            <SelectTrigger className="w-[160px] bg-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RANGE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="relative w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <Input
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); if (e.target.value === "") resetSort(); }}
-              placeholder="Search campaigns..."
-              className="pl-9 bg-white"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); if (v === "all") resetSort(); }}>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => {
+              setStatusFilter(v);
+              if (v === "all") resetSort();
+            }}
+          >
             <SelectTrigger className="w-32 bg-white">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -372,6 +379,19 @@ export default function Campaigns() {
               {statuses.data?.map((s) => (
                 <SelectItem key={s.campaign_status_id} value={s.name}>
                   {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={rangeDays} onValueChange={setRangeDays}>
+            <SelectTrigger className="w-[160px] bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {RANGE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -399,10 +419,16 @@ export default function Campaigns() {
                     onSort={(k) => toggleSort(k as CampaignsSortKey)}
                     className="font-medium"
                   />
-                  <TableHead className="font-medium text-right">Visitors</TableHead>
-                  <TableHead className="font-medium text-right">Revenue</TableHead>
+                  <TableHead className="font-medium text-right">
+                    Visitors
+                  </TableHead>
+                  <TableHead className="font-medium text-right">
+                    Revenue
+                  </TableHead>
                   <TableHead className="font-medium text-right">Cost</TableHead>
-                  <TableHead className="font-medium text-right">Profit</TableHead>
+                  <TableHead className="font-medium text-right">
+                    Profit
+                  </TableHead>
                   <SortableHeader
                     label="Status"
                     sortKey="campaign_status_id"
@@ -454,7 +480,9 @@ export default function Campaigns() {
                       className="hover:bg-slate-50/50 transition-colors"
                     >
                       <TableCell className="pl-6">
-                        <div className="font-medium text-slate-900">{c.name}</div>
+                        <div className="font-medium text-slate-900">
+                          {c.name}
+                        </div>
                         <div className="text-xs text-slate-500 mt-0.5 font-mono">
                           {c.campaign_uid.slice(0, 8)}
                         </div>
@@ -515,7 +543,10 @@ export default function Campaigns() {
                 })}
                 {campaigns.hasNextPage && (
                   <TableRow ref={sentinelRef}>
-                    <TableCell colSpan={9} className="py-4 text-center text-slate-400 text-xs">
+                    <TableCell
+                      colSpan={9}
+                      className="py-4 text-center text-slate-400 text-xs"
+                    >
                       {campaigns.isFetchingNextPage ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-2" />

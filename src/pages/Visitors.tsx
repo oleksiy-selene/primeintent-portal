@@ -300,18 +300,15 @@ export default function Visitors() {
             </span>
           </div>
 
-          <Select value={rangeDays} onValueChange={(v) => { setRangeDays(v); if (v === "7") resetSort(); }}>
-            <SelectTrigger className="w-[140px] h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RANGE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="relative w-64">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
+            <Input
+              value={clickId}
+              onChange={(e) => { setClickId(e.target.value); if (e.target.value === "") resetSort(); }}
+              placeholder="Search Click ID..."
+              className="h-8 pl-8 text-xs font-mono"
+            />
+          </div>
 
           <Select value={campaignFilter} onValueChange={(v) => { setCampaignFilter(v); if (v === "all") resetSort(); }}>
             <SelectTrigger className="w-[200px] h-8 text-xs">
@@ -336,15 +333,18 @@ export default function Visitors() {
 
           <div className="flex-1" />
 
-          <div className="relative w-64">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
-            <Input
-              value={clickId}
-              onChange={(e) => { setClickId(e.target.value); if (e.target.value === "") resetSort(); }}
-              placeholder="Search Click ID..."
-              className="h-8 pl-8 text-xs font-mono"
-            />
-          </div>
+          <Select value={rangeDays} onValueChange={(v) => { setRangeDays(v); if (v === "7") resetSort(); }}>
+            <SelectTrigger className="w-[140px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {RANGE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex-1 border border-slate-200 rounded-lg bg-white shadow-sm overflow-hidden flex flex-col">
