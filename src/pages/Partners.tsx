@@ -562,11 +562,6 @@ export default function Partners() {
             </SelectContent>
           </Select>
           <DateRangePicker value={dateRange} onChange={setDateRange} />
-          <p className="ml-auto text-sm text-slate-500 whitespace-nowrap">
-            Showing{" "}
-            <span className="font-medium text-slate-900">{rows.length}</span>{" "}
-            partner{rows.length === 1 ? "" : "s"}
-          </p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex-1 min-h-0 flex flex-col">
