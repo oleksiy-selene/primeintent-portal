@@ -85,25 +85,41 @@ export function Header({
         </button>
 
         {open && (
-          <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-lg shadow-lg min-w-[220px] py-1">
-            {TIMEZONES.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => void handleSelectTz(t.value)}
-                className={cn(
-                  "w-full text-left px-4 py-2 text-sm flex items-center justify-between hover:bg-slate-50 transition-colors",
-                  t.value === tz
-                    ? "text-indigo-600 font-medium"
-                    : "text-slate-700",
-                )}
-              >
-                <span>
-                  {t.label} ({TIMEZONE_OFFSETS[t.value] ?? ""} hours)
-                </span>
-                {t.value === tz && <Check className="w-3.5 h-3.5" />}
-              </button>
-            ))}
+          <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg min-w-[320px] p-2">
+            <div className="px-2 pb-2 text-xs font-medium text-slate-400 uppercase tracking-wide">
+              Timezone
+            </div>
+            <div className="max-h-80 overflow-auto space-y-1">
+              {TIMEZONES.map((t) => {
+                const offset = TIMEZONE_OFFSETS[t.value] ?? "+0";
+                return (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => void handleSelectTz(t.value)}
+                    className={cn(
+                      "w-full flex items-center justify-between gap-4 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-slate-50",
+                      t.value === tz
+                        ? "bg-indigo-50 text-indigo-700"
+                        : "text-slate-700",
+                    )}
+                  >
+                    <span className="min-w-0 flex items-center gap-2">
+                      <span className="truncate">{t.label}</span>
+                      <span className="text-xs font-medium text-slate-400 whitespace-nowrap">
+                        GMT{offset}
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-2 shrink-0 text-xs text-slate-400">
+                      <span className="tabular-nums">{offset}h</span>
+                      {t.value === tz && (
+                        <Check className="w-3.5 h-3.5 text-indigo-600" />
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
