@@ -94,7 +94,9 @@ export default function ResetPassword() {
 
       <div className="flex-1 flex flex-col justify-center items-center p-6 relative z-10">
         <div className="w-full max-w-[420px] mb-8 flex flex-col items-center">
-          <img src="/logo.png" alt="Prime Intent Portal" className="w-16 h-16 object-contain mb-6" />
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-100 border-2 border-indigo-200 flex items-center justify-center shadow-lg shadow-indigo-200/60 mb-6 p-3">
+            <img src="/logo.png" alt="Prime Intent Portal" className="w-full h-full object-contain" />
+          </div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
             Reset your password
           </h1>
