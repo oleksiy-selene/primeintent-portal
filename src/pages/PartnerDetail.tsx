@@ -737,21 +737,18 @@ export default function PartnerDetail() {
                 </span>
               )}
             </TabsTrigger>
-            {activeTab === "campaigns" && (
-              <div className="ml-auto flex items-center gap-3 pb-3">
-                <DateRangePicker value={dateRange} onChange={setDateRange} />
-                {canWrite && (
-                  <Button
-                    onClick={() => {
-                      setEditingCampaign(null);
-                      setCampaignDialogOpen(true);
-                    }}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 h-8 text-sm"
-                  >
-                    <Plus className="w-4 h-4" />
-                    New Campaign
-                  </Button>
-                )}
+            {activeTab === "campaigns" && canWrite && (
+              <div className="ml-auto pb-3">
+                <Button
+                  onClick={() => {
+                    setEditingCampaign(null);
+                    setCampaignDialogOpen(true);
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 h-8 text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Campaign
+                </Button>
               </div>
             )}
           </TabsList>
@@ -803,6 +800,8 @@ export default function PartnerDetail() {
                     ))}
                   </SelectContent>
                 </Select>
+                <div className="flex-1" />
+                <DateRangePicker value={dateRange} onChange={setDateRange} />
               </div>
 
               {/* Table */}
