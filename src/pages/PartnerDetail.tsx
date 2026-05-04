@@ -391,7 +391,12 @@ function PartnerDetailPage() {
   const [campaignStatusFilter, setCampaignStatusFilter] = useState("all");
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
-  const [campaignSortKey, campaignSortDir, campToggleSort, campResetSort] = useSortState<CampaignsSortKey>("created_at");
+  const {
+    sortKey: campaignSortKey,
+    sortDir: campaignSortDir,
+    toggleSort: campToggleSort,
+    resetSort: campResetSort,
+  } = useSortState<CampaignsSortKey>("created_at");
   const [campaignRows, setCampaignRows] = useState<Campaign[]>([]);
   const [campaignPerf, setCampaignPerf] = useState<Record<number, CampaignPerformance>>({});
 
