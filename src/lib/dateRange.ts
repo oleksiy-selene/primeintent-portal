@@ -79,6 +79,45 @@ function calendarYmd(y: number, mo: number, d: number): string {
 }
 
 /**
+ * Formats a UTC ISO string as a "YYYY-MM-DDTHH:MM" wall-clock string in the
+ * given IANA timezone, suitable for use as a `datetime-local` input value.
+ */
+export function utcIsoToLocalString(utcIso: string, tz: string): string {
+  const d = new Date(utcIso);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(d);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
+  const year = get("year");
+  const month = get("month");
+  const day = get("day");
+  // Intl can return "24" for midnight on some platforms; normalise to "00".
+  const hour = get("hour") === "24" ? "00" : get("hour");
+  const minute = get("minute");
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
+/**
+ * Parses a "YYYY-MM-DDTHH:MM" wall-clock string from a `datetime-local` input
+ * and converts it to a UTC ISO string, treating the wall clock as being in the
+ * given IANA timezone (not the browser's local timezone).
+ */
+export function localStringToUtcIso(localStr: string, tz: string): string {
+  const [datePart, timePart] = localStr.split("T");
+  if (!datePart || !timePart) return new Date(localStr).toISOString();
+  const [hh, mm] = timePart.split(":").map(Number);
+  // Find the UTC midnight of this calendar date in tz, then add hh:mm.
+  const tzMidnight = tzMidnightFromYmd(tz, datePart);
+  return new Date(tzMidnight.getTime() + (hh * 60 + mm) * 60_000).toISOString();
+}
+
+/**
  * Computes a timezone-aware DateRange for a preset key.
  *
  * `from` = start of the calendar period (midnight in `tz`).

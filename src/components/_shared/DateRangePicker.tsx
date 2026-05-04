@@ -7,6 +7,8 @@ import {
   type PresetKey,
   PRESET_KEYS,
   getPresetRange,
+  utcIsoToLocalString,
+  localStringToUtcIso,
 } from "@/lib/dateRange";
 import { Button } from "@/components/ui/button";
 
@@ -23,8 +25,13 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
   const tz = profile?.timezone ?? "America/New_York";
 
   const [open, setOpen] = useState(false);
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
+  const [showCustom, setShowCustom] = useState(value.preset === "custom");
+  const [customFrom, setCustomFrom] = useState(
+    value.preset === "custom" ? utcIsoToLocalString(value.from, tz) : "",
+  );
+  const [customTo, setCustomTo] = useState(
+    value.preset === "custom" ? utcIsoToLocalString(value.to, tz) : "",
+  );
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,14 +45,23 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
   }, [open]);
 
   function selectPreset(key: PresetKey) {
+    setShowCustom(false);
     onChange(getPresetRange(key, tz));
     setOpen(false);
   }
 
+  function openCustom() {
+    setShowCustom(true);
+    // Pre-fill inputs in the user's selected timezone wall-clock time.
+    setCustomFrom(utcIsoToLocalString(value.from, tz));
+    setCustomTo(utcIsoToLocalString(value.to, tz));
+  }
+
   function applyCustom() {
     if (!customFrom || !customTo) return;
-    const from = new Date(customFrom).toISOString();
-    const to = new Date(customTo).toISOString();
+    // Convert wall-clock times in the selected tz to UTC ISO strings.
+    const from = localStringToUtcIso(customFrom, tz);
+    const to = localStringToUtcIso(customTo, tz);
     const label = `${customFrom.slice(0, 10)} – ${customTo.slice(0, 10)}`;
     onChange({ from, to, preset: "custom", label });
     setOpen(false);
@@ -83,12 +99,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
           <div className="border-t border-slate-100 mt-1 pt-1">
             <button
               type="button"
-              onClick={() => {
-                if (value.preset !== "custom") {
-                  setCustomFrom(value.from.slice(0, 16));
-                  setCustomTo(value.to.slice(0, 16));
-                }
-              }}
+              onClick={openCustom}
               className={cn(
                 "w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition-colors",
                 value.preset === "custom"
@@ -98,10 +109,12 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
             >
               Custom…
             </button>
-            {(value.preset === "custom" || customFrom) && (
+            {showCustom && (
               <div className="px-4 pb-3 pt-2 space-y-2">
                 <div>
-                  <label className="text-xs text-slate-500 block mb-1">From</label>
+                  <label className="text-xs text-slate-500 block mb-1">
+                    From ({profile?.timezone ?? "America/New_York"})
+                  </label>
                   <input
                     type="datetime-local"
                     value={customFrom}
@@ -110,7 +123,9 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 block mb-1">To</label>
+                  <label className="text-xs text-slate-500 block mb-1">
+                    To ({profile?.timezone ?? "America/New_York"})
+                  </label>
                   <input
                     type="datetime-local"
                     value={customTo}
