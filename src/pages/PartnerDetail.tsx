@@ -220,7 +220,7 @@ function PartnerDetailsForm({
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="flex-1 overflow-y-auto">
-        <div className="border-b border-slate-200">
+        <div className="border-b border-slate-200 bg-slate-50">
           <FieldRow label="Partner ID" readOnly>
             <div className="flex items-center py-1 font-mono text-sm text-slate-700">
               {partner.partner_id}
@@ -458,7 +458,7 @@ function PartnerDetailPage() {
       <Header title={partner.name} subtitle={<button onClick={() => navigate("/partners")}>Back to Partners</button>} />
       <div className="flex-1 min-h-0 flex flex-col">
         <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="flex w-full items-center justify-start gap-6 border-b border-slate-200 rounded-none bg-transparent p-0 h-auto px-8 pt-6">
+          <TabsList className="flex w-full items-center justify-start gap-6 border-b border-slate-200 rounded-none bg-transparent p-0 h-auto pt-6">
             <TabsTrigger
               value="details"
               className="pb-3 text-sm font-medium rounded-none border-b-2 shadow-none bg-transparent px-0 data-[state=active]:border-indigo-500 data-[state=active]:text-indigo-600 data-[state=active]:bg-transparent data-[state=inactive]:border-transparent data-[state=inactive]:text-slate-500 hover:text-slate-700"
