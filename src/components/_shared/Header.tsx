@@ -4,6 +4,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TIMEZONES, tzLabel } from "@/lib/dateRange";
 import { cn } from "@/lib/utils";
 
+const TIMEZONE_OFFSETS: Record<string, string> = {
+  "America/New_York": "-5",
+  "America/Chicago": "-6",
+  "America/Denver": "-7",
+  "America/Los_Angeles": "-8",
+  "America/Anchorage": "-9",
+  "Pacific/Honolulu": "-10",
+  UTC: "+0",
+};
+
 export function Header({
   title,
   subtitle,
@@ -88,7 +98,9 @@ export function Header({
                     : "text-slate-700",
                 )}
               >
-                <span>{t.label}</span>
+                <span>
+                  {t.label} ({TIMEZONE_OFFSETS[t.value] ?? ""} hours)
+                </span>
                 {t.value === tz && <Check className="w-3.5 h-3.5" />}
               </button>
             ))}
