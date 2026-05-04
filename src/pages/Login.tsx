@@ -144,7 +144,7 @@ export default function Login() {
                     setResetSent(false);
                     setResetEmail("");
                   }}
-                  className="mt-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+                  className="mt-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   Back to sign in
@@ -199,7 +199,7 @@ export default function Login() {
                     setForgotMode(false);
                     setResetError(null);
                   }}
-                  className="w-full text-sm text-slate-500 hover:text-slate-700 flex items-center justify-center gap-1 pt-1"
+                  className="w-full text-sm text-slate-500 hover:text-slate-700 flex items-center justify-center gap-1 pt-1 cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   Back to sign in
@@ -246,7 +246,7 @@ export default function Login() {
                         setForgotMode(true);
                         setError(null);
                       }}
-                      className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+                      className="text-xs text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer"
                     >
                       Forgot password?
                     </button>
@@ -267,7 +267,7 @@ export default function Login() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />

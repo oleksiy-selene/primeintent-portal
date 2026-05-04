@@ -287,7 +287,7 @@ function CopyButton({ value }: { value: string }) {
     <button
       type="button"
       onClick={copy}
-      className="ml-1.5 text-slate-400 hover:text-indigo-600 transition-colors"
+      className="ml-1.5 text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
       title="Copy to clipboard"
     >
       {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -689,7 +689,7 @@ export default function PartnerDetail() {
         subtitle={
           <button
             onClick={() => navigate("/partners")}
-            className="flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-600 transition-colors"
+            className="flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Partners
