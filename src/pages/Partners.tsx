@@ -36,7 +36,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -260,22 +259,12 @@ async function fetchPartnerPerf(
   return result;
 }
 
-function avatarFor(name: string) {
-  return name
-    .split(/\s+/)
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
-function statusBorderClass(statusName: string | null | undefined): string {
-  if (!statusName) return "border-slate-200";
+function statusDotClass(statusName: string | null | undefined): string {
+  if (!statusName) return "bg-slate-300";
   const s = statusName.toLowerCase();
-  if (s === "active") return "border-emerald-400";
-  if (s === "paused") return "border-amber-400";
-  return "border-slate-300";
+  if (s === "active") return "bg-emerald-400";
+  if (s === "paused") return "bg-amber-400";
+  return "bg-slate-300";
 }
 
 function PartnerDialog({
@@ -648,16 +637,12 @@ export default function Partners() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar
+                          <span
                             className={cn(
-                              "w-9 h-9 shrink-0 border-2",
-                              statusBorderClass(p.enum_partner_status?.name),
+                              "w-2 h-2 rounded-full shrink-0",
+                              statusDotClass(p.enum_partner_status?.name),
                             )}
-                          >
-                            <AvatarFallback className="bg-slate-100 text-slate-600 font-medium text-xs">
-                              {avatarFor(p.name)}
-                            </AvatarFallback>
-                          </Avatar>
+                          />
                           <div className="flex flex-col min-w-0">
                             <span className="font-medium text-slate-900 truncate">
                               {p.name}
