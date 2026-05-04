@@ -6,7 +6,6 @@ import {
   Activity,
   UserCog,
   LogOut,
-  Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -38,9 +37,7 @@ export function Sidebar({ active }: { active: string }) {
   return (
     <aside className="w-60 shrink-0 bg-slate-950 text-slate-200 flex flex-col h-screen sticky top-0 border-r border-slate-900">
       <div className="px-5 py-5 flex items-center gap-2 border-b border-slate-900">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-          <Shield className="w-4 h-4 text-white" strokeWidth={2.5} />
-        </div>
+        <img src="/logo.png" alt="Prime Intent Portal" className="w-8 h-8 object-contain" />
         <div className="flex flex-col leading-tight">
           <span className="text-sm font-semibold text-white tracking-tight">
             Prime Intent Portal

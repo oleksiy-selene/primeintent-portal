@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
-import { Lock, Eye, EyeOff, Shield, Loader2, CheckCircle2 } from "lucide-react";
+import { Lock, Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,9 +94,7 @@ export default function ResetPassword() {
 
       <div className="flex-1 flex flex-col justify-center items-center p-6 relative z-10">
         <div className="w-full max-w-[420px] mb-8 flex flex-col items-center">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-6">
-            <Shield className="w-6 h-6 text-white" strokeWidth={2.5} />
-          </div>
+          <img src="/logo.png" alt="Prime Intent Portal" className="w-16 h-16 object-contain mb-6" />
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
             Reset your password
           </h1>
