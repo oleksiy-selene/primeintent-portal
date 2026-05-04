@@ -1,0 +1,510 @@
+import { useMemo, useState, type FormEvent } from "react";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { AppLayout } from "@/components/_shared/AppLayout";
+import { Header } from "@/components/_shared/Header";
+import { useAuth } from "@/contexts/AuthContext";
+import { num, formatDate } from "@/lib/format";
+import { supabase } from "@/lib/supabase";
+import { useInfiniteScroll, PAGE_SIZE } from "@/lib/useInfiniteScroll";
+import { useSortState } from "@/lib/useSortState";
+import { SortableHeader } from "@/components/SortableHeader";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus, Search, Loader2 } from "lucide-react";
+
+type PartnersSortKey = "name" | "partner_type_id" | "created_at";
+
+interface PartnerType {
+  partner_type_id: number;
+  name: string;
+}
+
+interface PartnerRow {
+  partner_id: number;
+  partner_uid: string;
+  name: string;
+  partner_type_id: number;
+  postback_url: string | null;
+  created_at: string;
+  enum_partner_type: { name: string } | null;
+  campaigns: { count: number }[] | null;
+}
+
+interface PartnersFilter {
+  search: string;
+  typeFilter: string;
+  sortKey: PartnersSortKey;
+  sortDir: "asc" | "desc";
+}
+
+async function fetchPartnersPage(
+  filter: PartnersFilter,
+  pageIndex: number,
+): Promise<{ rows: PartnerRow[]; hasMore: boolean }> {
+  const from = pageIndex * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  let query = supabase
+    .from("partners")
+    .select(
+      `
+      partner_id,
+      partner_uid,
+      name,
+      partner_type_id,
+      postback_url,
+      created_at,
+      enum_partner_type:enum_partner_type!partners_partner_type_id_fkey ( name ),
+      campaigns!campaigns_partner_id_fkey ( count )
+    `,
+    )
+    .range(from, to);
+
+  if (filter.sortKey === "partner_type_id") {
+    query = query.order("name", {
+      foreignTable: "enum_partner_type",
+      ascending: filter.sortDir === "asc",
+    });
+  } else {
+    query = query.order(filter.sortKey, { ascending: filter.sortDir === "asc" });
+  }
+
+  if (filter.search.trim()) {
+    query = query.ilike("name", `%${filter.search.trim()}%`);
+  }
+  if (filter.typeFilter !== "all") {
+    query = query.eq("partner_type_id", Number(filter.typeFilter));
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as PartnerRow[];
+  return { rows, hasMore: rows.length === PAGE_SIZE };
+}
+
+async function fetchPartnerTypes(): Promise<PartnerType[]> {
+  const { data, error } = await supabase
+    .from("enum_partner_type")
+    .select("partner_type_id, name")
+    .order("partner_type_id");
+  if (error) throw error;
+  return (data ?? []) as PartnerType[];
+}
+
+function avatarFor(name: string) {
+  return name
+    .split(/\s+/)
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function PartnerDialog({
+  open,
+  onOpenChange,
+  partner,
+  partnerTypes,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  partner: PartnerRow | null;
+  partnerTypes: PartnerType[];
+}) {
+  const qc = useQueryClient();
+  const [name, setName] = useState(partner?.name ?? "");
+  const [typeId, setTypeId] = useState<string>(
+    String(partner?.partner_type_id ?? partnerTypes[0]?.partner_type_id ?? ""),
+  );
+  const [postbackUrl, setPostbackUrl] = useState(partner?.postback_url ?? "");
+  const [error, setError] = useState<string | null>(null);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        name: name.trim(),
+        partner_type_id: Number(typeId),
+        postback_url: postbackUrl.trim() || null,
+      };
+      if (partner) {
+        const { error: e } = await supabase
+          .from("partners")
+          .update(payload)
+          .eq("partner_id", partner.partner_id);
+        if (e) throw e;
+      } else {
+        const { error: e } = await supabase.from("partners").insert(payload);
+        if (e) throw e;
+      }
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["partners"] });
+      onOpenChange(false);
+    },
+    onError: (err: unknown) => {
+      setError(err instanceof Error ? err.message : "Save failed");
+    },
+  });
+
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    save.mutate();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {partner ? "Edit Partner" : "Add Partner"}
+          </DialogTitle>
+          <DialogDescription>
+            {partner
+              ? "Update partner details and postback URL."
+              : "Add a new lead-buying partner to your network."}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="p-name">Partner Name</Label>
+            <Input
+              id="p-name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Acme Insurance"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="p-type">Type</Label>
+            <Select value={typeId} onValueChange={setTypeId}>
+              <SelectTrigger id="p-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {partnerTypes.map((t) => (
+                  <SelectItem
+                    key={t.partner_type_id}
+                    value={String(t.partner_type_id)}
+                  >
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="p-pb">Postback URL (optional)</Label>
+            <Input
+              id="p-pb"
+              type="url"
+              value={postbackUrl}
+              onChange={(e) => setPostbackUrl(e.target.value)}
+              placeholder="https://partner.example.com/postback?cid={click_id}"
+            />
+            <p className="text-xs text-slate-500">
+              S2S postback fired on conversion. Tokens like{" "}
+              <code className="text-xs">{"{click_id}"}</code> will be
+              substituted.
+            </p>
+          </div>
+          {error && (
+            <div className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-md px-3 py-2">
+              {error}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={save.isPending}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              {save.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : partner ? (
+                "Save changes"
+              ) : (
+                "Create partner"
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function Partners() {
+  const { profile } = useAuth();
+  const canWrite =
+    profile?.role === "admin" || profile?.role === "manager";
+
+  const [, navigate] = useLocation();
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const { sortKey, sortDir, toggleSort, resetSort } = useSortState<PartnersSortKey>(
+    "created_at",
+    "desc",
+  );
+
+  const filter: PartnersFilter = {
+    search,
+    typeFilter,
+    sortKey: sortKey ?? "created_at",
+    sortDir,
+  };
+
+  const partners = useInfiniteQuery({
+    queryKey: ["partners", filter],
+    queryFn: ({ pageParam = 0 }) =>
+      fetchPartnersPage(filter, pageParam as number),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) =>
+      last.hasMore ? pages.length : undefined,
+  });
+
+  const partnerTypes = useQuery({
+    queryKey: ["partner-types"],
+    queryFn: fetchPartnerTypes,
+  });
+
+  const rows = useMemo(
+    () => (partners.data?.pages ?? []).flatMap((p) => p.rows),
+    [partners.data],
+  );
+
+  const sentinelRef = useInfiniteScroll<HTMLTableRowElement>({
+    hasMore: !!partners.hasNextPage,
+    isLoading: partners.isFetchingNextPage,
+    onLoadMore: () => void partners.fetchNextPage(),
+  });
+
+  return (
+    <AppLayout active="partners">
+      <Header
+        title="Partners"
+        subtitle="Manage your carriers, networks, and direct buyers."
+        right={
+          canWrite ? (
+            <Button
+              onClick={() => {
+                setDialogOpen(true);
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Partner
+            </Button>
+          ) : undefined
+        }
+      />
+      <div className="flex-1 p-8 min-h-0 flex flex-col gap-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="relative w-72">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  if (e.target.value === "") resetSort();
+                }}
+                placeholder="Search partners..."
+                className="pl-9 bg-white"
+              />
+            </div>
+            <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); if (v === "all") resetSort(); }}>
+              <SelectTrigger className="w-[180px] bg-white">
+                <SelectValue placeholder="All types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All types</SelectItem>
+                {partnerTypes.data?.map((t) => (
+                  <SelectItem
+                    key={t.partner_type_id}
+                    value={String(t.partner_type_id)}
+                  >
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="text-sm text-slate-500">
+            Showing{" "}
+            <span className="font-medium text-slate-900">{rows.length}</span>{" "}
+            partner{rows.length === 1 ? "" : "s"}
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex-1 min-h-0 flex flex-col">
+          <div className="overflow-auto flex-1">
+            <Table>
+              <TableHeader className="bg-slate-50 sticky top-0 z-10">
+                <TableRow>
+                  <SortableHeader
+                    label="Partner"
+                    sortKey="name"
+                    activeSortKey={sortKey}
+                    activeSortDir={sortDir}
+                    onSort={(k) => toggleSort(k as PartnersSortKey)}
+                    className="w-[300px]"
+                  />
+                  <SortableHeader
+                    label="Type"
+                    sortKey="partner_type_id"
+                    activeSortKey={sortKey}
+                    activeSortDir={sortDir}
+                    onSort={(k) => toggleSort(k as PartnersSortKey)}
+                  />
+                  <TableHead className="text-right">Campaigns</TableHead>
+                  <TableHead>Postback URL</TableHead>
+                  <SortableHeader
+                    label="Created"
+                    sortKey="created_at"
+                    activeSortKey={sortKey}
+                    activeSortDir={sortDir}
+                    onSort={(k) => toggleSort(k as PartnersSortKey)}
+                  />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {partners.isLoading && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="text-center text-slate-400 py-10"
+                    >
+                      <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+                      Loading partners…
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!partners.isLoading && rows.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="text-center text-slate-400 py-10"
+                    >
+                      No partners match your filters.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {rows.map((p) => (
+                  <TableRow
+                    key={p.partner_id}
+                    className="hover:bg-slate-50/80 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/partners/${p.partner_id}`)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-9 h-9 border border-slate-200">
+                          <AvatarFallback className="bg-slate-100 text-slate-600 font-medium text-xs">
+                            {avatarFor(p.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-medium text-slate-900 truncate">
+                            {p.name}
+                          </span>
+                          <span className="text-xs text-slate-500 truncate font-mono">
+                            {p.partner_uid.slice(0, 8)}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="secondary"
+                        className="font-normal text-xs bg-slate-100 text-slate-700 hover:bg-slate-100"
+                      >
+                        {p.enum_partner_type?.name ?? "—"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-slate-700">
+                      {num(p.campaigns?.[0]?.count ?? 0)}
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-500 font-mono truncate max-w-xs">
+                      {p.postback_url || (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-500">
+                      {formatDate(p.created_at)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {partners.hasNextPage && (
+                  <TableRow ref={sentinelRef}>
+                    <TableCell colSpan={5} className="py-4 text-center text-slate-400 text-xs">
+                      {partners.isFetchingNextPage ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-2" />
+                          Loading more…
+                        </>
+                      ) : (
+                        "Scroll to load more"
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </div>
+
+      {dialogOpen && (
+        <PartnerDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          partner={null}
+          partnerTypes={partnerTypes.data ?? []}
+        />
+      )}
+    </AppLayout>
+  );
+}
