@@ -310,22 +310,35 @@ export default function Login() {
 
               <TooltipProvider>
                 <div className="grid grid-cols-2 gap-2">
-                  {OAUTH_PROVIDERS.map(({ id, label, Icon }) => (
-                    <Tooltip key={id}>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled
-                          className="h-10 gap-2 border-slate-200 text-slate-400 cursor-not-allowed opacity-70"
-                        >
-                          <Icon className="w-4 h-4" />
-                          <span className="text-sm">{label}</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Not implemented yet</TooltipContent>
-                    </Tooltip>
-                  ))}
+                  {OAUTH_PROVIDERS.map(({ id, label, Icon }) =>
+                    id === "google" ? (
+                      <Button
+                        key={id}
+                        type="button"
+                        variant="outline"
+                        onClick={() => void onOAuth(id)}
+                        className="h-10 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50"
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span className="text-sm">{label}</span>
+                      </Button>
+                    ) : (
+                      <Tooltip key={id}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled
+                            className="h-10 gap-2 border-slate-200 text-slate-400 cursor-not-allowed opacity-70"
+                          >
+                            <Icon className="w-4 h-4" />
+                            <span className="text-sm">{label}</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Not implemented yet</TooltipContent>
+                      </Tooltip>
+                    ),
+                  )}
                 </div>
               </TooltipProvider>
             </>
