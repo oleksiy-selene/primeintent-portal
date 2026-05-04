@@ -168,7 +168,7 @@ export function CompactRefined1() {
           </div>
           
           {/* Tabs */}
-          <div className="flex items-center gap-6 border-b border-slate-200 mb-[20px]">
+          <div className="flex items-center gap-6 border-b border-slate-200 mb-[0px] pb-[8px]">
             <button 
               className={cn(
                 "pb-3 text-sm font-medium transition-colors border-b-2",
