@@ -90,7 +90,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-slate-200 rounded-lg shadow-lg min-w-[220px] py-1">
+        <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-slate-200 rounded-lg shadow-lg min-w-[220px] py-1">
           {PRESET_KEYS.map(({ key, label }) => (
             <button
               key={key}
