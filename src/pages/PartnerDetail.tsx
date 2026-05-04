@@ -609,14 +609,17 @@ export default function PartnerDetail() {
   const [dateRange, setDateRange] = useState<DateRange>(() =>
     getPresetRange("today", profile?.timezone ?? "America/New_York"),
   );
-  const prevTzRef = useRef<string | null>(null);
+  const tzInitializedRef = useRef(false);
+  const userTouchedRef = useRef(false);
+  const handleDateRangeChange = (range: DateRange) => {
+    userTouchedRef.current = true;
+    setDateRange(range);
+  };
   useEffect(() => {
     const tz = profile?.timezone;
-    if (!tz || tz === prevTzRef.current) return;
-    prevTzRef.current = tz;
-    setDateRange((prev) =>
-      prev.preset === "custom" ? prev : getPresetRange(prev.preset as import("@/lib/dateRange").PresetKey, tz),
-    );
+    if (!tz || tzInitializedRef.current || userTouchedRef.current) return;
+    tzInitializedRef.current = true;
+    setDateRange(getPresetRange("today", tz));
   }, [profile?.timezone]);
 
   const performanceQ = useQuery({
@@ -801,7 +804,7 @@ export default function PartnerDetail() {
                   </SelectContent>
                 </Select>
                 <div className="flex-1" />
-                <DateRangePicker value={dateRange} onChange={setDateRange} />
+                <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
               </div>
 
               {/* Table */}

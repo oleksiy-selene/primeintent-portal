@@ -187,14 +187,17 @@ export default function Visitors() {
   const [dateRange, setDateRange] = useState<DateRange>(() =>
     getPresetRange("last-7", profile?.timezone ?? "America/New_York"),
   );
-  const prevTzRef = useRef<string | null>(null);
+  const tzInitializedRef = useRef(false);
+  const userTouchedRef = useRef(false);
+  const handleDateRangeChange = (range: DateRange) => {
+    userTouchedRef.current = true;
+    setDateRange(range);
+  };
   useEffect(() => {
     const tz = profile?.timezone;
-    if (!tz || tz === prevTzRef.current) return;
-    prevTzRef.current = tz;
-    setDateRange((prev) =>
-      prev.preset === "custom" ? prev : getPresetRange(prev.preset as import("@/lib/dateRange").PresetKey, tz),
-    );
+    if (!tz || tzInitializedRef.current || userTouchedRef.current) return;
+    tzInitializedRef.current = true;
+    setDateRange(getPresetRange("last-7", tz));
   }, [profile?.timezone]);
 
   const { sortKey, sortDir, toggleSort, resetSort } = useSortState<VisitorsSortKey>(
@@ -333,7 +336,7 @@ export default function Visitors() {
 
           <div className="flex-1" />
 
-          <DateRangePicker value={dateRange} onChange={setDateRange} />
+          <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
         </div>
 
         <div className="flex-1 border border-slate-200 rounded-lg bg-white shadow-sm overflow-hidden flex flex-col">
