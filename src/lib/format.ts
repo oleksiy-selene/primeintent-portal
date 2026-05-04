@@ -41,6 +41,17 @@ export const formatDate = (iso: string | null | undefined) => {
   });
 };
 
+export const formatTime = (iso: string | null | undefined) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
 export const relativeTime = (iso: string | null | undefined) => {
   if (!iso) return "—";
   const d = new Date(iso);

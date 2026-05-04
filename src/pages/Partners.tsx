@@ -10,7 +10,7 @@ import { useLocation } from "wouter";
 import { AppLayout } from "@/components/_shared/AppLayout";
 import { Header } from "@/components/_shared/Header";
 import { useAuth } from "@/contexts/AuthContext";
-import { num, usd, formatDate } from "@/lib/format";
+import { num, usd, formatDate, formatTime } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { useInfiniteScroll, PAGE_SIZE } from "@/lib/useInfiniteScroll";
 import { useSortState } from "@/lib/useSortState";
@@ -620,7 +620,8 @@ export default function Partners() {
                       onClick={() => navigate(`/partners/${p.partner_id}`)}
                     >
                       <TableCell className="text-xs text-slate-500">
-                        {formatDate(p.created_at)}
+                        <div>{formatDate(p.created_at)}</div>
+                        <div className="mt-0.5">{formatTime(p.created_at)}</div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
