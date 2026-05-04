@@ -358,7 +358,7 @@ export default function Visitors() {
                     activeSortKey={sortKey}
                     activeSortDir={sortDir}
                     onSort={(k) => toggleSort(k as VisitorsSortKey)}
-                    className="w-[180px] text-xs"
+                    className="w-[180px] text-xs pl-6"
                   />
                   <TableHead className="w-[200px] text-xs">Campaign</TableHead>
                   <SortableHeader
@@ -392,7 +392,7 @@ export default function Visitors() {
                     activeSortKey={sortKey}
                     activeSortDir={sortDir}
                     onSort={(k) => toggleSort(k as VisitorsSortKey)}
-                    className="w-[120px] text-right text-xs"
+                    className="w-[120px] text-right text-xs pr-6"
                   />
                 </TableRow>
               </TableHeader>
@@ -416,7 +416,7 @@ export default function Visitors() {
                   const converted = (v.visitor_conversions?.length ?? 0) > 0;
                   return (
                     <TableRow key={v.visitor_id} className="hover:bg-slate-50/50">
-                      <TableCell className="text-xs text-slate-500 font-mono tracking-tight">
+                      <TableCell className="text-xs text-slate-500 font-mono tracking-tight pl-6">
                         {formatDateTime(v.created_at)}
                       </TableCell>
                       <TableCell className="text-xs font-medium text-slate-900 truncate max-w-[200px]">
@@ -436,7 +436,7 @@ export default function Visitors() {
                       <TableCell className="text-xs text-slate-600">
                         {v.geo_country ?? "—"}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right pr-6">
                         {converted ? (
                           <Badge className="bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 border-emerald-200/50 text-[10px] px-2 py-0 uppercase tracking-wider font-semibold rounded-sm">
                             Converted

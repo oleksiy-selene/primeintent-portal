@@ -54,3 +54,16 @@ A React + Vite admin portal for managing affiliate marketing partners, campaigns
 - `fetchPartnerPerf` and `fetchPerformance` accept `{ from: string; to: string }` ISO range objects — not rolling `days` integers
 - `DateRangePicker` reads timezone from `useAuth().profile.timezone`; initial state defaults to "America/New_York" until profile loads (see tech-debt task for fix)
 - `Header` uses a manual click-outside popover (no Radix Popover) to avoid z-index conflicts with sticky positioning
+
+## UI conventions
+
+### Table padding
+Every table must have `pl-6` on the **first** column (header + every data cell) and `pr-6` on the **last** column (header + every data cell). This gives comfortable breathing room from the table borders. When the last column is conditional (e.g. an edit-action cell that only renders for `canWrite` users), apply `pr-6` to both the conditional last column and the always-present second-to-last column using a conditional class: `className={cn("...", !canWrite && "pr-6")}`.
+
+### Tabs
+Model all tab implementations on `PartnerDetail.tsx`. Key points:
+- Use shadcn/ui `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` primitives.
+- `TabsList` — full-width, left-aligned, no background, no rounding, bottom-border only: `className="flex w-full items-center justify-start gap-6 border-b border-slate-200 rounded-none bg-white p-0 h-auto px-8 pt-6"`
+- `TabsTrigger` — underline-style active indicator, no pill/box background: `className="cursor-pointer pb-3 text-sm font-medium rounded-none border-b-2 shadow-none bg-transparent px-0 data-[state=active]:border-indigo-500 data-[state=active]:text-indigo-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=inactive]:border-transparent data-[state=inactive]:text-slate-500 hover:text-slate-700"`
+- Optional count badge on a trigger: `<span className="ml-1.5 text-xs bg-slate-200 text-slate-600 rounded-full px-1.5 py-0.5">{count}</span>`
+- `TabsContent` — `mt-0` to remove default top margin, use flex-col + min-h-0 when the tab contains a scrollable table.

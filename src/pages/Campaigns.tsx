@@ -389,7 +389,7 @@ export default function Campaigns() {
                     activeSortKey={sortKey}
                     activeSortDir={sortDir}
                     onSort={(k) => toggleSort(k as CampaignsSortKey)}
-                    className="font-medium"
+                    className="font-medium pl-6"
                   />
                   <SortableHeader
                     label="Partner"
@@ -419,7 +419,7 @@ export default function Campaigns() {
                     onSort={(k) => toggleSort(k as CampaignsSortKey)}
                     className="font-medium"
                   />
-                  <TableHead className="w-[60px]"></TableHead>
+                  <TableHead className="w-[60px] pr-6"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-slate-100">
@@ -453,7 +453,7 @@ export default function Campaigns() {
                       key={c.campaign_id}
                       className="hover:bg-slate-50/50 transition-colors"
                     >
-                      <TableCell>
+                      <TableCell className="pl-6">
                         <div className="font-medium text-slate-900">{c.name}</div>
                         <div className="text-xs text-slate-500 mt-0.5 font-mono">
                           {c.campaign_uid.slice(0, 8)}
@@ -494,7 +494,7 @@ export default function Campaigns() {
                       <TableCell className="text-slate-500 text-sm whitespace-nowrap">
                         {formatDate(c.created_at)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="pr-6">
                         {canWrite && (
                           <Button
                             variant="ghost"

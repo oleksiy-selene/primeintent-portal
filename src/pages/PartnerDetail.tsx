@@ -814,7 +814,7 @@ export default function PartnerDetail() {
                           activeSortKey={campSortKey}
                           activeSortDir={campSortDir}
                           onSort={(k) => campToggleSort(k as CampaignsSortKey)}
-                          className="font-medium"
+                          className="font-medium pl-6"
                         />
                         <TableHead className="font-medium text-right">Visitors</TableHead>
                         <TableHead className="font-medium text-right">Revenue</TableHead>
@@ -834,9 +834,9 @@ export default function PartnerDetail() {
                           activeSortKey={campSortKey}
                           activeSortDir={campSortDir}
                           onSort={(k) => campToggleSort(k as CampaignsSortKey)}
-                          className="font-medium"
+                          className={cn("font-medium", !canWrite && "pr-6")}
                         />
-                        {canWrite && <TableHead className="w-[60px]" />}
+                        {canWrite && <TableHead className="w-[60px] pr-6" />}
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-slate-100">
@@ -861,7 +861,7 @@ export default function PartnerDetail() {
                         const profit = p.revenue - p.cost;
                         return (
                           <TableRow key={c.campaign_id} className="hover:bg-slate-50/50 transition-colors">
-                            <TableCell>
+                            <TableCell className="pl-6">
                               <div className="font-medium text-slate-900">{c.name}</div>
                               <div className="text-xs text-slate-500 mt-0.5 font-mono">
                                 {c.campaign_uid.slice(0, 8)}
@@ -896,11 +896,11 @@ export default function PartnerDetail() {
                                 {status}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-slate-500 text-sm whitespace-nowrap">
+                            <TableCell className={cn("text-slate-500 text-sm whitespace-nowrap", !canWrite && "pr-6")}>
                               {formatDate(c.created_at)}
                             </TableCell>
                             {canWrite && (
-                              <TableCell>
+                              <TableCell className="pr-6">
                                 <Button
                                   variant="ghost"
                                   size="icon"

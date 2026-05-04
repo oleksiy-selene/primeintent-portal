@@ -325,7 +325,7 @@ export default function Users() {
                   activeSortKey={sortKey}
                   activeSortDir={sortDir}
                   onSort={(k) => toggleSort(k as UsersSortKey)}
-                  className="font-medium text-slate-600"
+                  className="font-medium text-slate-600 pl-6"
                 />
                 <SortableHeader
                   label="Role"
@@ -352,7 +352,7 @@ export default function Users() {
                   activeSortKey={sortKey}
                   activeSortDir={sortDir}
                   onSort={(k) => toggleSort(k as UsersSortKey)}
-                  className="font-medium text-slate-600"
+                  className="font-medium text-slate-600 pr-6"
                 />
               </TableRow>
             </TableHeader>
@@ -385,7 +385,7 @@ export default function Users() {
                     key={u.user_id}
                     className="border-slate-100 hover:bg-slate-50/50"
                   >
-                    <TableCell>
+                    <TableCell className="pl-6">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9 border border-slate-100">
                           <AvatarFallback className="bg-slate-100 text-slate-600 text-xs font-medium">
@@ -432,7 +432,7 @@ export default function Users() {
                     <TableCell className="text-sm text-slate-600">
                       {formatDate(u.created_at)}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-600">
+                    <TableCell className="text-sm text-slate-600 pr-6">
                       {relativeTime(u.last_sign_in_at)}
                     </TableCell>
                   </TableRow>
