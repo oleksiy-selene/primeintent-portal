@@ -1,17 +1,13 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/_shared/AppLayout";
 import { Header } from "@/components/_shared/Header";
 import { usd, num, formatDateTime } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Download, CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react";
+import { DateRangePicker } from "@/components/_shared/DateRangePicker";
+import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
+import { resolvePresetRange, selectionLabel } from "@/lib/dateRange";
+import { useAuth } from "@/contexts/AuthContext";
+import { CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react";
 
 interface KpiData {
   visitors: number;
@@ -20,33 +16,23 @@ interface KpiData {
   cost: number;
 }
 
-const RANGE_OPTIONS = [
-  { value: "7", label: "Last 7 days" },
-  { value: "30", label: "Last 30 days" },
-  { value: "90", label: "Last 90 days" },
-];
-
-function rangeStartIso(days: number) {
-  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-}
-
-async function fetchKpis(days: number): Promise<KpiData> {
-  const since = rangeStartIso(days);
-
+async function fetchKpis(from: string, to: string): Promise<KpiData> {
   const [visitorsRes, conversionsRes, expensesRes] = await Promise.all([
     supabase
       .from("visitors")
       .select("visitor_id", { count: "exact", head: true })
-      .gte("created_at", since),
-    // Revenue counts only `approved` conversions per spec.
+      .gte("created_at", from)
+      .lte("created_at", to),
     supabase
       .from("visitor_conversions")
       .select("payout_amount, created_at, enum_conversion_status!inner(name)")
-      .gte("created_at", since),
+      .gte("created_at", from)
+      .lte("created_at", to),
     supabase
       .from("campaign_expenses")
       .select("amount, start_time")
-      .gte("start_time", since),
+      .gte("start_time", from)
+      .lte("start_time", to),
   ]);
 
   if (visitorsRes.error) throw visitorsRes.error;
@@ -86,9 +72,7 @@ interface RecentConversion {
   } | null;
 }
 
-async function fetchRecentConversions(
-  _days: number,
-): Promise<RecentConversion[]> {
+async function fetchRecentConversions(): Promise<RecentConversion[]> {
   const { data, error } = await supabase
     .from("visitor_conversions")
     .select(
@@ -119,8 +103,7 @@ interface TopCampaign {
   revenue: number;
 }
 
-async function fetchTopCampaigns(days: number): Promise<TopCampaign[]> {
-  const since = rangeStartIso(days);
+async function fetchTopCampaigns(from: string, to: string): Promise<TopCampaign[]> {
   const { data, error } = await supabase
     .from("visitor_conversions")
     .select(
@@ -138,7 +121,8 @@ async function fetchTopCampaigns(days: number): Promise<TopCampaign[]> {
     `,
     )
     .eq("enum_conversion_status.name", "approved")
-    .gte("created_at", since);
+    .gte("created_at", from)
+    .lte("created_at", to);
 
   if (error) throw error;
 
@@ -191,22 +175,34 @@ function KpiCard({
 }
 
 export default function Dashboard() {
-  const [rangeDays, setRangeDays] = useState("30");
-  const days = Number(rangeDays);
+  const { profile, isProfileLoaded } = useAuth();
+  const tz = profile?.timezone ?? "America/New_York";
+  const [selection, setSelection] = useDateRangeWithTimezone();
+
+  const rangeLabel = selectionLabel(selection, tz);
+
   const kpis = useQuery({
-    queryKey: ["dashboard-kpis", days],
-    queryFn: () => fetchKpis(days),
+    queryKey: ["dashboard-kpis", selection, tz],
+    queryFn: () => {
+      const { from, to } = resolvePresetRange(selection, tz);
+      return fetchKpis(from, to);
+    },
+    enabled: isProfileLoaded,
   });
+
   const recent = useQuery({
-    queryKey: ["dashboard-recent", days],
-    queryFn: () => fetchRecentConversions(days),
+    queryKey: ["dashboard-recent"],
+    queryFn: () => fetchRecentConversions(),
   });
+
   const top = useQuery({
-    queryKey: ["dashboard-top", days],
-    queryFn: () => fetchTopCampaigns(days),
+    queryKey: ["dashboard-top", selection, tz],
+    queryFn: () => {
+      const { from, to } = resolvePresetRange(selection, tz);
+      return fetchTopCampaigns(from, to);
+    },
+    enabled: isProfileLoaded,
   });
-  const rangeLabel =
-    RANGE_OPTIONS.find((o) => o.value === rangeDays)?.label ?? "Last 30 days";
 
   const profit = (kpis.data?.revenue ?? 0) - (kpis.data?.cost ?? 0);
   const maxRevenue = Math.max(1, ...(top.data ?? []).map((c) => c.revenue));
@@ -217,20 +213,7 @@ export default function Dashboard() {
         title="Dashboard"
         subtitle="Overview of your lead generation network"
         right={
-          <div className="flex items-center gap-3">
-            <Select value={rangeDays} onValueChange={setRangeDays}>
-              <SelectTrigger className="w-[160px] bg-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {RANGE_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <DateRangePicker value={selection} onChange={setSelection} />
         }
       />
 
@@ -287,7 +270,7 @@ export default function Dashboard() {
             <div className="flex-1 mt-6 grid grid-cols-2 gap-6">
               <div>
                 <div className="text-xs uppercase tracking-wider text-slate-500 mb-1">
-                  Revenue ({rangeLabel.toLowerCase()})
+                  Revenue ({rangeLabel})
                 </div>
                 <div className="text-3xl font-semibold text-indigo-600">
                   {usd(kpis.data?.revenue ?? 0)}
@@ -295,7 +278,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <div className="text-xs uppercase tracking-wider text-slate-500 mb-1">
-                  Cost ({rangeLabel.toLowerCase()})
+                  Cost ({rangeLabel})
                 </div>
                 <div className="text-3xl font-semibold text-slate-700">
                   {usd(kpis.data?.cost ?? 0)}

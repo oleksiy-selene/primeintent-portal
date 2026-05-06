@@ -23,6 +23,8 @@ interface AuthContextValue {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  /** True once the profile fetch has settled (success or failure). Gates all tz-dependent queries. */
+  isProfileLoaded: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -35,10 +37,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isProfileLoaded, setIsProfileLoaded] = useState(false);
 
   const loadProfile = async (userId: string | null) => {
     if (!userId) {
       setProfile(null);
+      setIsProfileLoaded(true);
       return;
     }
     const { data, error } = await supabase
@@ -49,10 +53,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error("Failed to load profile", error);
       setProfile(null);
+      setIsProfileLoaded(true);
       return;
     }
     const raw = data as (Profile & { timezone?: string | null }) | null;
     setProfile(raw ? { ...raw, timezone: raw.timezone ?? "America/New_York" } : null);
+    setIsProfileLoaded(true);
   };
 
   useEffect(() => {
@@ -76,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (_event, newSession) => {
         if (!mounted) return;
         setSession(newSession);
+        setIsProfileLoaded(false);
         void loadProfile(newSession?.user.id ?? null);
       },
     );
@@ -92,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: session?.user ?? null,
       profile,
       loading,
+      isProfileLoaded,
       signIn: async (email, password) => {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -116,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile((prev) => (prev ? { ...prev, timezone: tz } : prev));
       },
     }),
-    [session, profile, loading],
+    [session, profile, loading, isProfileLoaded],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

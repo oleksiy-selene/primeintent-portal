@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
 import { DateRangePicker } from "@/components/_shared/DateRangePicker";
 import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
+import { resolvePresetRange } from "@/lib/dateRange";
 import {
   useInfiniteQuery,
   useQuery,
@@ -459,12 +460,17 @@ export default function Partners() {
 
   const partnerIds = useMemo(() => rows.map((r) => r.partner_id), [rows]);
 
-  const [dateRange, handleDateRangeChange] = useDateRangeWithTimezone("today", profile?.timezone);
+  const { isProfileLoaded } = useAuth();
+  const tz = profile?.timezone ?? "America/New_York";
+  const [selection, setSelection] = useDateRangeWithTimezone();
 
   const perf = useQuery({
-    queryKey: ["partner-perf", partnerIds, dateRange.from, dateRange.to],
-    queryFn: () => fetchPartnerPerf(partnerIds, dateRange),
-    enabled: partnerIds.length > 0,
+    queryKey: ["partner-perf", partnerIds, selection, tz],
+    queryFn: () => {
+      const range = resolvePresetRange(selection, tz);
+      return fetchPartnerPerf(partnerIds, range);
+    },
+    enabled: partnerIds.length > 0 && isProfileLoaded,
     staleTime: 60_000,
   });
 
@@ -550,7 +556,7 @@ export default function Partners() {
               ))}
             </SelectContent>
           </Select>
-          <DateRangePicker value={dateRange} onChange={handleDateRangeChange} className="ml-auto" />
+          <DateRangePicker value={selection} onChange={setSelection} className="ml-auto" />
         </div>
 
         <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex-1 min-h-0 flex flex-col">

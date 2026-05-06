@@ -5,6 +5,7 @@ import { Header } from "@/components/_shared/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { DateRangePicker } from "@/components/_shared/DateRangePicker";
 import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
+import { resolvePresetRange } from "@/lib/dateRange";
 import { num, pct, usd, formatDateTime } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { useInfiniteScroll, PAGE_SIZE } from "@/lib/useInfiniteScroll";
@@ -54,14 +55,17 @@ interface VisitorRow {
 }
 
 
-interface VisitorsFilter {
+interface VisitorsBaseFilter {
   campaignId: string;
   utmSource: string;
   clickId: string;
-  from: string;
-  to: string;
   sortKey: VisitorsSortKey;
   sortDir: "asc" | "desc";
+}
+
+interface VisitorsFilter extends VisitorsBaseFilter {
+  from: string;
+  to: string;
 }
 
 async function fetchVisitorsPage(
@@ -184,19 +188,19 @@ export default function Visitors() {
   const [utmSource, setUtmSource] = useState("");
   const [clickId, setClickId] = useState("");
 
-  const [dateRange, handleDateRangeChange] = useDateRangeWithTimezone("today", profile?.timezone);
+  const { isProfileLoaded } = useAuth();
+  const tz = profile?.timezone ?? "America/New_York";
+  const [selection, setSelection] = useDateRangeWithTimezone();
 
   const { sortKey, sortDir, toggleSort, resetSort } = useSortState<VisitorsSortKey>(
     "created_at",
     "desc",
   );
 
-  const filter: VisitorsFilter = {
+  const baseFilter: VisitorsBaseFilter = {
     campaignId: campaignFilter,
     utmSource,
     clickId,
-    from: dateRange.from,
-    to: dateRange.to,
     sortKey: sortKey ?? "created_at",
     sortDir,
   };
@@ -207,12 +211,15 @@ export default function Visitors() {
   });
 
   const visitors = useInfiniteQuery({
-    queryKey: ["visitors", filter],
-    queryFn: ({ pageParam = 0 }) =>
-      fetchVisitorsPage(filter, pageParam as number),
+    queryKey: ["visitors", baseFilter, selection, tz],
+    queryFn: ({ pageParam = 0 }) => {
+      const { from, to } = resolvePresetRange(selection, tz);
+      return fetchVisitorsPage({ ...baseFilter, from, to }, pageParam as number);
+    },
     initialPageParam: 0,
     getNextPageParam: (last, pages) =>
       last.hasMore ? pages.length : undefined,
+    enabled: isProfileLoaded,
   });
 
   const campaignOpts = useQuery({
@@ -322,7 +329,7 @@ export default function Visitors() {
 
           <div className="flex-1" />
 
-          <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
+          <DateRangePicker value={selection} onChange={setSelection} />
         </div>
 
         <div className="flex-1 border border-slate-200 rounded-lg bg-white shadow-sm overflow-hidden flex flex-col">

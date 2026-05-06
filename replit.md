@@ -14,8 +14,9 @@ A React + Vite admin portal for managing affiliate marketing partners, campaigns
 - `src/App.tsx` — router setup, QueryClient, AuthProvider
 - `src/contexts/AuthContext.tsx` — auth session, profile (incl. `timezone`), `setTimezone`
 - `src/lib/supabase.ts` — Supabase client
-- `src/lib/dateRange.ts` — `DateRange` type, `getPresetRange`, `TIMEZONES`, `tzLabel`
+- `src/lib/dateRange.ts` — `PresetId`/`ShiftId`/`DateRangeSelection` types, `resolvePresetRange`, `selectionLabel`, `TIMEZONES`, `tzLabel`
 - `src/lib/format.ts` — `num`, `usd`, `formatDate`, `formatTime`
+- `src/hooks/useDateRangeWithTimezone.ts` — returns `[DateRangeSelection, setSelection]` from context
 - `src/lib/useInfiniteScroll.ts` — infinite scroll sentinel hook
 - `src/lib/useSortState.ts` — sortable column state
 - `src/components/_shared/AppLayout.tsx` — sidebar + main content wrapper
@@ -52,7 +53,9 @@ A React + Vite admin portal for managing affiliate marketing partners, campaigns
 
 ## Architecture notes
 - `fetchPartnerPerf` and `fetchPerformance` accept `{ from: string; to: string }` ISO range objects — not rolling `days` integers
-- `DateRangePicker` reads timezone from `useAuth().profile.timezone`; initial state defaults to "America/New_York" until profile loads (see tech-debt task for fix)
+- **Late-binding date ranges**: all pages store a `DateRangeSelection` (preset ID or custom datetime strings) and call `resolvePresetRange(selection, tz)` inside the `queryFn` at fetch time — never at render time
+- All timezone-dependent queries are gated on `isProfileLoaded` from `AuthContext` so they don't fire with the default "America/New_York" fallback before the real profile loads
+- `DateRangeContext` persists `DateRangeSelection` to both URL params and `localStorage`; reads on init in priority: URL → localStorage → default
 - `Header` uses a manual click-outside popover (no Radix Popover) to avoid z-index conflicts with sticky positioning
 
 ## UI conventions

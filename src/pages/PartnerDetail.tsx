@@ -2,6 +2,7 @@ import { useMemo, useState, useRef, useEffect, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { DateRangePicker } from "@/components/_shared/DateRangePicker";
 import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
+import { resolvePresetRange } from "@/lib/dateRange";
 import {
   useQuery,
   useMutation,
@@ -606,12 +607,17 @@ export default function PartnerDetail() {
 
   const visibleIds = useMemo(() => campaignRows.map((c) => c.campaign_id), [campaignRows]);
 
-  const [dateRange, handleDateRangeChange] = useDateRangeWithTimezone("today", profile?.timezone);
+  const { isProfileLoaded } = useAuth();
+  const tz = profile?.timezone ?? "America/New_York";
+  const [selection, setSelection] = useDateRangeWithTimezone();
 
   const performanceQ = useQuery({
-    queryKey: ["partner-campaign-performance", visibleIds, dateRange.from, dateRange.to],
-    queryFn: () => fetchPerformance(visibleIds, dateRange),
-    enabled: visibleIds.length > 0,
+    queryKey: ["partner-campaign-performance", visibleIds, selection, tz],
+    queryFn: () => {
+      const range = resolvePresetRange(selection, tz);
+      return fetchPerformance(visibleIds, range);
+    },
+    enabled: visibleIds.length > 0 && isProfileLoaded,
   });
 
   const perfFor = (id: number) =>
@@ -790,7 +796,7 @@ export default function PartnerDetail() {
                   </SelectContent>
                 </Select>
                 <div className="flex-1" />
-                <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
+                <DateRangePicker value={selection} onChange={setSelection} />
               </div>
 
               {/* Table */}

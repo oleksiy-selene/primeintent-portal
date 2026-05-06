@@ -1,19 +1,59 @@
-export type PresetKey = "today" | "this-week" | "last-7" | "this-month" | "last-30";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import {
+  startOfDay,
+  startOfWeek,
+  startOfMonth,
+  subDays,
+} from "date-fns";
 
-export interface DateRange {
+// ─── Typed IDs ────────────────────────────────────────────────────────────────
+
+export type PresetId = "today" | "this-week" | "last-7" | "this-month" | "last-30";
+
+/** Backward-compat alias — prefer PresetId in new code */
+export type PresetKey = PresetId;
+
+export type ShiftId = "24h" | "7d" | "1mo" | "custom";
+
+// ─── Selection (what lives in state / localStorage / URL) ─────────────────────
+
+export type DateRangeSelection =
+  | { presetId: PresetId }
+  | { presetId: "custom"; customFrom: string; customTo: string };
+
+// ─── Resolved range (what goes to Supabase) ──────────────────────────────────
+
+export interface ResolvedRange {
   from: string;
   to: string;
-  preset: PresetKey | "custom";
+}
+
+// ─── Legacy DateRange type (kept for backward compat with remaining callers) ──
+
+export interface DateRange extends ResolvedRange {
+  preset: PresetId | "custom";
   label: string;
 }
 
-export const PRESET_KEYS: { key: PresetKey; label: string }[] = [
-  { key: "today", label: "Today" },
-  { key: "this-week", label: "This Week" },
-  { key: "last-7", label: "Last 7 Days" },
-  { key: "this-month", label: "This Month" },
-  { key: "last-30", label: "Last 30 Days" },
+// ─── Preset metadata ──────────────────────────────────────────────────────────
+
+export const PRESETS: { id: PresetId; label: string }[] = [
+  { id: "today", label: "Today" },
+  { id: "this-week", label: "This Week" },
+  { id: "last-7", label: "Last 7 Days" },
+  { id: "this-month", label: "This Month" },
+  { id: "last-30", label: "Last 30 Days" },
 ];
+
+/** Backward-compat alias */
+export const PRESET_KEYS: { key: PresetKey; label: string }[] = PRESETS.map((p) => ({
+  key: p.id,
+  label: p.label,
+}));
+
+export const PRESET_IDS = PRESETS.map((p) => p.id);
+
+// ─── Timezone list ────────────────────────────────────────────────────────────
 
 export const TIMEZONES: { value: string; label: string }[] = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -29,131 +69,138 @@ export function tzLabel(tz: string): string {
   return TIMEZONES.find((t) => t.value === tz)?.label ?? tz;
 }
 
+// ─── Core: Late-Binding Resolution ──────────────────────────────────────────
+
 /**
- * Returns the UTC Date corresponding to midnight of `ymd` ("YYYY-MM-DD") in
- * the given IANA timezone.  DST-safe: we never add fixed milliseconds across a
- * day boundary; instead we adjust based on what UTC midnight looks like in `tz`.
+ * Resolves a DateRangeSelection to UTC ISO strings at the moment of the call
+ * (late-binding). Uses the 4-step algorithm:
+ *  1. Get current UTC instant
+ *  2. Convert to target tz
+ *  3. Compute period start in that tz
+ *  4. Convert start back to UTC; end = now
  */
-function tzMidnightFromYmd(tz: string, ymd: string): Date {
-  // Create a candidate by treating ymd as UTC midnight.
-  const utcMidnight = new Date(ymd + "T00:00:00.000Z");
-  // Find out what hour:minute that UTC midnight maps to in the target timezone.
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(utcMidnight);
-  const h = parseInt(parts.find((p) => p.type === "hour")?.value ?? "0");
-  const m = parseInt(parts.find((p) => p.type === "minute")?.value ?? "0");
-  if (h === 0 && m === 0) return utcMidnight;
-  // Positive-offset tz (ahead of UTC): UTC midnight shows as h:m that same day.
-  // Negative-offset tz (behind UTC): UTC midnight shows as h:m the previous day (h ≥ 12).
-  const adjMs =
-    h < 12
-      ? -(h * 60 + m) * 60_000
-      : ((24 - h) * 60 - m) * 60_000;
-  return new Date(utcMidnight.getTime() + adjMs);
+export function resolvePresetRange(
+  selection: DateRangeSelection,
+  tz: string,
+): ResolvedRange {
+  if (selection.presetId === "custom") {
+    return { from: selection.customFrom, to: selection.customTo };
+  }
+
+  const nowUtc = new Date();
+  const nowZoned = toZonedTime(nowUtc, tz);
+
+  let startZoned: Date;
+  switch (selection.presetId) {
+    case "today":
+      startZoned = startOfDay(nowZoned);
+      break;
+    case "this-week":
+      startZoned = startOfWeek(nowZoned, { weekStartsOn: 1 });
+      break;
+    case "last-7":
+      startZoned = startOfDay(subDays(nowZoned, 6));
+      break;
+    case "this-month":
+      startZoned = startOfMonth(nowZoned);
+      break;
+    case "last-30":
+      startZoned = startOfDay(subDays(nowZoned, 29));
+      break;
+  }
+
+  return {
+    from: fromZonedTime(startZoned, tz).toISOString(),
+    to: nowUtc.toISOString(),
+  };
 }
 
-/** Returns today's calendar date components in `tz`. */
-function todayInTz(tz: string): { y: number; mo: number; d: number } {
-  const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(new Date());
-  const [y, mo, d] = ymd.split("-").map(Number);
-  return { y, mo, d };
+/** Backward-compat alias — new code should use resolvePresetRange */
+export function getPresetRange(preset: PresetId, tz: string): DateRange {
+  const { from, to } = resolvePresetRange({ presetId: preset }, tz);
+  const label = PRESETS.find((p) => p.id === preset)?.label ?? preset;
+  return { from, to, preset, label };
 }
+
+// ─── Display label ────────────────────────────────────────────────────────────
+
+export function selectionLabel(selection: DateRangeSelection, tz: string): string {
+  if (selection.presetId === "custom") {
+    const fmt = (s: string) =>
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }).format(new Date(s));
+    return `${fmt(selection.customFrom)} – ${fmt(selection.customTo)}`;
+  }
+  return PRESETS.find((p) => p.id === selection.presetId)?.label ?? selection.presetId;
+}
+
+// ─── URL serialisation ────────────────────────────────────────────────────────
+
+export function selectionToUrlParams(selection: DateRangeSelection): Record<string, string> {
+  if (selection.presetId === "custom") {
+    return { range_id: "custom", start: selection.customFrom, end: selection.customTo };
+  }
+  return { range_id: selection.presetId };
+}
+
+export function selectionFromUrlParams(
+  params: URLSearchParams,
+): DateRangeSelection | null {
+  const rangeId = params.get("range_id");
+  if (!rangeId) return null;
+  if (rangeId === "custom") {
+    const start = params.get("start");
+    const end = params.get("end");
+    if (start && end) return { presetId: "custom", customFrom: start, customTo: end };
+    return null;
+  }
+  if ((PRESET_IDS as string[]).includes(rangeId)) {
+    return { presetId: rangeId as PresetId };
+  }
+  return null;
+}
+
+// ─── datetime-local helpers ──────────────────────────────────────────────────
 
 /**
- * Builds a "YYYY-MM-DD" string from UTC-based calendar arithmetic so that
- * day/month/year rollover is handled correctly without DST interference.
- */
-function calendarYmd(y: number, mo: number, d: number): string {
-  const dt = new Date(Date.UTC(y, mo - 1, d)); // handles month/year rollover
-  return (
-    dt.getUTCFullYear() +
-    "-" +
-    String(dt.getUTCMonth() + 1).padStart(2, "0") +
-    "-" +
-    String(dt.getUTCDate()).padStart(2, "0")
-  );
-}
-
-/**
- * Formats a UTC ISO string as a "YYYY-MM-DDTHH:MM" wall-clock string in the
+ * Formats a UTC ISO string as "YYYY-MM-DDTHH:MM" wall-clock string in the
  * given IANA timezone, suitable for use as a `datetime-local` input value.
  */
 export function utcIsoToLocalString(utcIso: string, tz: string): string {
   const d = new Date(utcIso);
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(d);
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
-  const year = get("year");
-  const month = get("month");
-  const day = get("day");
-  // Intl can return "24" for midnight on some platforms; normalise to "00".
-  const hour = get("hour") === "24" ? "00" : get("hour");
-  const minute = get("minute");
-  return `${year}-${month}-${day}T${hour}:${minute}`;
+  const zoned = toZonedTime(d, tz);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    zoned.getFullYear() +
+    "-" +
+    pad(zoned.getMonth() + 1) +
+    "-" +
+    pad(zoned.getDate()) +
+    "T" +
+    pad(zoned.getHours()) +
+    ":" +
+    pad(zoned.getMinutes())
+  );
 }
 
 /**
  * Parses a "YYYY-MM-DDTHH:MM" wall-clock string from a `datetime-local` input
  * and converts it to a UTC ISO string, treating the wall clock as being in the
- * given IANA timezone (not the browser's local timezone).
+ * given IANA timezone.
  */
 export function localStringToUtcIso(localStr: string, tz: string): string {
+  if (!localStr) return new Date().toISOString();
   const [datePart, timePart] = localStr.split("T");
   if (!datePart || !timePart) return new Date(localStr).toISOString();
   const [hh, mm] = timePart.split(":").map(Number);
-  // Find the UTC midnight of this calendar date in tz, then add hh:mm.
-  const tzMidnight = tzMidnightFromYmd(tz, datePart);
-  return new Date(tzMidnight.getTime() + (hh * 60 + mm) * 60_000).toISOString();
-}
-
-/**
- * Computes a timezone-aware DateRange for a preset key.
- *
- * `from` = start of the calendar period (midnight in `tz`).
- * `to`   = now (current UTC instant) — presets always end at "right now",
- *           never at an end-of-day boundary, so future-scheduled records are
- *           not included and DST end-of-day drift is irrelevant.
- */
-export function getPresetRange(preset: PresetKey, tz: string): DateRange {
-  const now = new Date();
-  const nowIso = now.toISOString();
-  const { y, mo, d } = todayInTz(tz);
-
-  switch (preset) {
-    case "today": {
-      const start = tzMidnightFromYmd(tz, calendarYmd(y, mo, d));
-      return { from: start.toISOString(), to: nowIso, preset, label: "Today" };
-    }
-    case "this-week": {
-      // Find the day-of-week of today in tz using UTC-based date so we stay
-      // in the calendar space of the target timezone (avoids local-tz leakage).
-      const dow = new Date(Date.UTC(y, mo - 1, d)).getUTCDay(); // 0=Sun … 6=Sat
-      const daysToMon = dow === 0 ? 6 : dow - 1;
-      const start = tzMidnightFromYmd(tz, calendarYmd(y, mo, d - daysToMon));
-      return { from: start.toISOString(), to: nowIso, preset, label: "This Week" };
-    }
-    case "last-7": {
-      const start = tzMidnightFromYmd(tz, calendarYmd(y, mo, d - 6));
-      return { from: start.toISOString(), to: nowIso, preset, label: "Last 7 Days" };
-    }
-    case "this-month": {
-      const start = tzMidnightFromYmd(tz, calendarYmd(y, mo, 1));
-      return { from: start.toISOString(), to: nowIso, preset, label: "This Month" };
-    }
-    case "last-30": {
-      const start = tzMidnightFromYmd(tz, calendarYmd(y, mo, d - 29));
-      return { from: start.toISOString(), to: nowIso, preset, label: "Last 30 Days" };
-    }
-  }
+  const [year, month, day] = datePart.split("-").map(Number);
+  // Build a Date in the zoned representation then convert to UTC
+  const zonedDate = new Date(year, month - 1, day, hh, mm, 0, 0);
+  return fromZonedTime(zonedDate, tz).toISOString();
 }

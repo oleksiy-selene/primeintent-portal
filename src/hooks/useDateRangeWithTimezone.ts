@@ -1,25 +1,12 @@
-import { useEffect } from "react";
-import { type DateRange } from "@/lib/dateRange";
-import { getPresetRange, type PresetKey } from "@/lib/dateRange";
+import { type DateRangeSelection } from "@/lib/dateRange";
 import { useDateRangeContext } from "@/contexts/DateRangeContext";
 
-export function useDateRangeWithTimezone(
-  defaultPreset: PresetKey,
-  timezone: string | undefined,
-): [DateRange, (range: DateRange) => void] {
-  const { dateRange, setDateRange, tzInitialized, setTzInitialized } =
-    useDateRangeContext();
-
-  useEffect(() => {
-    if (!timezone || tzInitialized) return;
-    setTzInitialized(true);
-    setDateRange(getPresetRange(defaultPreset, timezone));
-  }, [timezone, tzInitialized, defaultPreset, setDateRange, setTzInitialized]);
-
-  const handleDateRangeChange = (range: DateRange) => {
-    setTzInitialized(true);
-    setDateRange(range);
-  };
-
-  return [dateRange, handleDateRangeChange];
+/**
+ * Returns the current date-range selection and a setter.
+ * Pages should call resolvePresetRange(selection, tz) inside their queryFn
+ * to get the actual { from, to } UTC ISO strings at fetch time.
+ */
+export function useDateRangeWithTimezone(): [DateRangeSelection, (sel: DateRangeSelection) => void] {
+  const { selection, setSelection } = useDateRangeContext();
+  return [selection, setSelection];
 }

@@ -3,20 +3,21 @@ import { Calendar, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  type DateRange,
-  type PresetKey,
-  PRESET_KEYS,
-  getPresetRange,
+  type DateRangeSelection,
+  type PresetId,
+  PRESETS,
+  selectionLabel,
   utcIsoToLocalString,
   localStringToUtcIso,
+  resolvePresetRange,
 } from "@/lib/dateRange";
 import { Button } from "@/components/ui/button";
 
-export type { DateRange };
+export type { DateRangeSelection };
 
 interface DateRangePickerProps {
-  value: DateRange;
-  onChange: (r: DateRange) => void;
+  value: DateRangeSelection;
+  onChange: (sel: DateRangeSelection) => void;
   className?: string;
 }
 
@@ -25,13 +26,22 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
   const tz = profile?.timezone ?? "America/New_York";
 
   const [open, setOpen] = useState(false);
-  const [showCustom, setShowCustom] = useState(value.preset === "custom");
-  const [customFrom, setCustomFrom] = useState(
-    value.preset === "custom" ? utcIsoToLocalString(value.from, tz) : "",
-  );
-  const [customTo, setCustomTo] = useState(
-    value.preset === "custom" ? utcIsoToLocalString(value.to, tz) : "",
-  );
+  const [showCustom, setShowCustom] = useState(value.presetId === "custom");
+
+  // For the custom inputs, initialise from current selection
+  const getInitialFrom = () => {
+    if (value.presetId === "custom") return utcIsoToLocalString(value.customFrom, tz);
+    const { from } = resolvePresetRange(value, tz);
+    return utcIsoToLocalString(from, tz);
+  };
+  const getInitialTo = () => {
+    if (value.presetId === "custom") return utcIsoToLocalString(value.customTo, tz);
+    const { to } = resolvePresetRange(value, tz);
+    return utcIsoToLocalString(to, tz);
+  };
+
+  const [customFrom, setCustomFrom] = useState(getInitialFrom);
+  const [customTo, setCustomTo] = useState(getInitialTo);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,38 +54,34 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  function selectPreset(key: PresetKey) {
+  function selectPreset(id: PresetId) {
     setShowCustom(false);
-    onChange(getPresetRange(key, tz));
+    onChange({ presetId: id });
     setOpen(false);
   }
 
   function openCustom() {
     setShowCustom(true);
-    // Pre-fill inputs in the user's selected timezone wall-clock time.
-    setCustomFrom(utcIsoToLocalString(value.from, tz));
-    setCustomTo(utcIsoToLocalString(value.to, tz));
+    if (value.presetId === "custom") {
+      setCustomFrom(utcIsoToLocalString(value.customFrom, tz));
+      setCustomTo(utcIsoToLocalString(value.customTo, tz));
+    } else {
+      const { from, to } = resolvePresetRange(value, tz);
+      setCustomFrom(utcIsoToLocalString(from, tz));
+      setCustomTo(utcIsoToLocalString(to, tz));
+    }
   }
 
   function applyCustom() {
     if (!customFrom || !customTo) return;
-    // Convert wall-clock times in the selected tz to UTC ISO strings.
     const from = localStringToUtcIso(customFrom, tz);
     const to = localStringToUtcIso(customTo, tz);
-    if (from >= to) return; // guard: from must be before to
-    const fmt = (s: string) =>
-      new Intl.DateTimeFormat("en-US", {
-        timeZone: tz,
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      }).format(new Date(s));
-    const label = `${fmt(from)} – ${fmt(to)}`;
-    onChange({ from, to, preset: "custom", label });
+    if (from >= to) return;
+    onChange({ presetId: "custom", customFrom: from, customTo: to });
     setOpen(false);
   }
+
+  const label = selectionLabel(value, tz);
 
   return (
     <div ref={ref} className={cn("relative", className)}>
@@ -85,25 +91,25 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
         className="flex items-center gap-2 px-3 py-1.5 h-9 text-sm bg-white border border-slate-200 rounded-md hover:bg-slate-50 text-slate-700 whitespace-nowrap"
       >
         <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-        <span>{value.label}</span>
+        <span>{label}</span>
         <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
       </button>
 
       {open && (
         <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-slate-200 rounded-lg shadow-lg min-w-[220px] py-1">
-          {PRESET_KEYS.map(({ key, label }) => (
+          {PRESETS.map(({ id, label: presetLabel }) => (
             <button
-              key={key}
+              key={id}
               type="button"
-              onClick={() => selectPreset(key)}
+              onClick={() => selectPreset(id)}
               className={cn(
                 "w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition-colors",
-                value.preset === key
+                value.presetId === id
                   ? "text-indigo-600 font-medium bg-indigo-50/60"
                   : "text-slate-700",
               )}
             >
-              {label}
+              {presetLabel}
             </button>
           ))}
           <div className="border-t border-slate-100 mt-1 pt-1">
@@ -112,7 +118,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
               onClick={openCustom}
               className={cn(
                 "w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition-colors",
-                value.preset === "custom"
+                value.presetId === "custom"
                   ? "text-indigo-600 font-medium bg-indigo-50/60"
                   : "text-slate-700",
               )}
