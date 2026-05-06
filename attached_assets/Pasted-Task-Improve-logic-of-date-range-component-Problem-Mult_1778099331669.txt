@@ -1,0 +1,30 @@
+Task: Improve logic of date-range component
+Problem: Multiple pages have components to select date range. Date range component calculates absolute values of Start/End values for a selected present and in many cases gets outdated as the time goes. For example, when Today is selected, the End value gets calculated once and doesn't represent the current time in the future data fetches. Also current implementation has too complicated logic to fight desynchronization of the selected timezone and the selected date-range preset.
+
+Goal: Implementation has to be updated and key principles have to be noted as an agent skill and saved in the project as a new skill.
+
+Proposed solution:
+
+If a user selects a preset value (any value except custom), it should not start calculation of components' absolute start and end values immediately; instead, the selected preset option needs to be remembered just by its name (or id). The only exception is Custom; for custom selection the component should remember absolute Start/End values provided by a user.
+Daterange component has logic to store selected value in a localstorage (to restore it after a page reload) and, also, selected datarange is synced between page navigations, so when a user goes to another page with daterange component, it has the same selection a user previously made. This store and sync logic should follow the same principle of remembering the selected preset name or ID unlesss custom option is selected.
+When a user wants to share some page and copies a URL in his broswer, the URL should have query parameters for all selected filters, so another user will see the same data on his screen (or slightly different in case of always shifting End value for multiple presets). DateRange selection should be carried the same way as it is stored in the localstorage, meaning that presets are passed by their names or ids instead of absolute start/end values.
+Tables fetch (load) data in the following cases: 1) when a page is opened for the first time and data is not loaded yet; 2) when a user changes selected value for TimeZone or DateRange.
+Start/End values have to recalculated right before data needs to be loaded on into a table; for example, if a user selects the 'Today' preset, the absolute End value is calculated right before data is requested from the database and hence it equals to the current time on every data fetch. Also it helps to keep selected TimeZone in sync with the selected dateRange.
+Another task that needs to take into account all the principles described above (basically it has to be implemented using the skill which is created as a result of the first task).
+Task: Time interval comparison.
+Goal: Let a user to compare a selected date-range (base range) with another interval of the same lenght in the past (reference range).
+DateRange component should have a 'Compare' toggle at the botton of its dropdown. If this toggle is activated, then a user should start seeing new controls to select a time shift (how far in the past is the reference range compared to the base range). Important note, we should always compare intervals of the same lenght. So the shift defines how both Start and End values are shifted, keeping the duration of base and reference intervals equal.
+Depending on the selected base range value, the shift options will change.
+If a base range is 'today', then shifts are:
+
+yesterday (shirt = -24hours)
+a week ago (shift = -7days)
+a month ago (shift = -1month)
+X days ago (shift=-X days; X should be a numberical input a user has to fill out)
+If a base range is 'this week' or 'last week', then shifts are:
+a week ago (-7days)
+a month ago (-1month)
+X days in the past (-X days)
+If a base range is 'this month' or 'last month', then shifts are:
+a month ago (-1month)
+X days ago in the past
