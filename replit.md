@@ -14,9 +14,9 @@ A React + Vite admin portal for managing affiliate marketing partners, campaigns
 - `src/App.tsx` — router setup, QueryClient, AuthProvider
 - `src/contexts/AuthContext.tsx` — auth session, profile (incl. `timezone`), `setTimezone`
 - `src/lib/supabase.ts` — Supabase client
-- `src/lib/dateRange.ts` — `PresetId`/`ShiftId`/`DateRangeSelection` types, `resolvePresetRange`, `selectionLabel`, `TIMEZONES`, `tzLabel`
+- `src/lib/dateRange.ts` — `PresetId`/`ShiftId`/`DateRangeSelection`/`CompareSelection` types, `resolvePresetRange`, `resolveShiftedRange`, `SHIFT_OPTIONS_FOR_PRESET`, `selectionLabel`, `TIMEZONES`, `tzLabel`
 - `src/lib/format.ts` — `num`, `usd`, `formatDate`, `formatTime`
-- `src/hooks/useDateRangeWithTimezone.ts` — returns `[DateRangeSelection, setSelection]` from context
+- `src/hooks/useDateRangeWithTimezone.ts` — returns `{ selection, setSelection, compare, setCompare }` from context
 - `src/lib/useInfiniteScroll.ts` — infinite scroll sentinel hook
 - `src/lib/useSortState.ts` — sortable column state
 - `src/components/_shared/AppLayout.tsx` — sidebar + main content wrapper
@@ -48,7 +48,8 @@ A React + Vite admin portal for managing affiliate marketing partners, campaigns
 - **Partners list**: search, type filter, status filter, date range filter (timezone-aware), Visitors/Revenue/Cost/Profit columns, campaign count, infinite scroll, avatar with status-colored border, add/edit dialog
 - **Partner detail**: overview tab (editable fields, postback URL + tokens, status/type), campaigns tab (search, status filter, date range filter, perf columns, add/edit campaign dialog), status badge in header
 - **Header**: global timezone selector (popover, saves to `profiles.timezone` in Supabase), sticky across all pages
-- **DateRangePicker**: presets (Today, This Week, Last 7 Days, This Month, Last 30 Days) + Custom datetime inputs; all preset boundaries computed in user's selected IANA timezone
+- **DateRangePicker**: presets + Custom datetime inputs + Compare toggle (context-sensitive shift selector, "NOW" notation range display); all preset boundaries computed in user's selected IANA timezone
+- **Compare mode**: toggle in DateRangePicker reveals shift selector (−24h/−7d/−30d/custom) filtered by active preset; compare state (`enabled`, `shiftId`, `customDays`) syncs to URL (`?compare=true&shift_id=…`) and `localStorage`; `resolveShiftedRange` generates the reference `{ from, to }` for Task #15
 - **Auth**: email/password login via Supabase Auth, role-based write access (admin/manager vs viewer)
 
 ## Architecture notes

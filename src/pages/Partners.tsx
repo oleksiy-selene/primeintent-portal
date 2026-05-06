@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
 import { DateRangePicker } from "@/components/_shared/DateRangePicker";
 import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
-import { resolvePresetRange } from "@/lib/dateRange";
+import { resolvePresetRange, resolveShiftedRange } from "@/lib/dateRange";
 import {
   useInfiniteQuery,
   useQuery,
@@ -462,10 +462,10 @@ export default function Partners() {
 
   const { isProfileLoaded } = useAuth();
   const tz = profile?.timezone ?? "America/New_York";
-  const [selection, setSelection] = useDateRangeWithTimezone();
+  const { selection, setSelection, compare } = useDateRangeWithTimezone();
 
   const perf = useQuery({
-    queryKey: ["partner-perf", partnerIds, selection, tz],
+    queryKey: ["partner-perf", partnerIds, selection, tz, compare],
     queryFn: () => {
       const range = resolvePresetRange(selection, tz);
       return fetchPartnerPerf(partnerIds, range);

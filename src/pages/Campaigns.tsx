@@ -9,7 +9,7 @@ import { Header } from "@/components/_shared/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { DateRangePicker } from "@/components/_shared/DateRangePicker";
 import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
-import { resolvePresetRange } from "@/lib/dateRange";
+import { resolvePresetRange, resolveShiftedRange } from "@/lib/dateRange";
 import { supabase } from "@/lib/supabase";
 import { PAGE_SIZE } from "@/lib/useInfiniteScroll";
 import { useSortState } from "@/lib/useSortState";
@@ -239,7 +239,7 @@ export default function Campaigns() {
 
   const { isProfileLoaded } = useAuth();
   const tz = profile?.timezone ?? "America/New_York";
-  const [selection, setSelection] = useDateRangeWithTimezone();
+  const { selection, setSelection, compare } = useDateRangeWithTimezone();
 
   const { sortKey, sortDir, toggleSort, resetSort } =
     useSortState<CampaignsSortKey>("created_at", "desc");
@@ -278,7 +278,7 @@ export default function Campaigns() {
   const visibleIds = useMemo(() => rows.map((c) => c.campaign_id), [rows]);
 
   const performance = useQuery({
-    queryKey: ["campaign-performance", visibleIds, selection, tz],
+    queryKey: ["campaign-performance", visibleIds, selection, tz, compare],
     queryFn: () => {
       const { from, to } = resolvePresetRange(selection, tz);
       return fetchPerformance(visibleIds, from, to);

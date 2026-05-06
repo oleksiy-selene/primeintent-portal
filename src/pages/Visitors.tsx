@@ -5,7 +5,7 @@ import { Header } from "@/components/_shared/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { DateRangePicker } from "@/components/_shared/DateRangePicker";
 import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
-import { resolvePresetRange } from "@/lib/dateRange";
+import { resolvePresetRange, resolveShiftedRange } from "@/lib/dateRange";
 import { num, pct, usd, formatDateTime } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { useInfiniteScroll, PAGE_SIZE } from "@/lib/useInfiniteScroll";
@@ -188,7 +188,7 @@ export default function Visitors() {
 
   const { isProfileLoaded } = useAuth();
   const tz = profile?.timezone ?? "America/New_York";
-  const [selection, setSelection] = useDateRangeWithTimezone();
+  const { selection, setSelection, compare } = useDateRangeWithTimezone();
 
   const { sortKey, sortDir, toggleSort, resetSort } = useSortState<VisitorsSortKey>(
     "created_at",
@@ -204,7 +204,7 @@ export default function Visitors() {
   };
 
   const stats = useQuery({
-    queryKey: ["visitor-stats", selection, tz],
+    queryKey: ["visitor-stats", selection, tz, compare],
     queryFn: () => {
       const { from, to } = resolvePresetRange(selection, tz);
       return fetchVisitorStats(from, to);
@@ -213,7 +213,7 @@ export default function Visitors() {
   });
 
   const visitors = useInfiniteQuery({
-    queryKey: ["visitors", baseFilter, selection, tz],
+    queryKey: ["visitors", baseFilter, selection, tz, compare],
     queryFn: ({ pageParam = 0 }) => {
       const { from, to } = resolvePresetRange(selection, tz);
       return fetchVisitorsPage({ ...baseFilter, from, to }, pageParam as number);

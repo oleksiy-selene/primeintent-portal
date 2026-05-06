@@ -245,3 +245,101 @@ export function localStringToUtcIso(localStr: string, tz: string): string {
   const zonedDate = new Date(year, month - 1, day, hh, mm, 0, 0);
   return fromZonedTime(zonedDate, tz).toISOString();
 }
+
+// ─── Compare / Reference Range ────────────────────────────────────────────────
+
+/** Describes the comparison toggle state stored in context / URL / localStorage. */
+export interface CompareSelection {
+  enabled: boolean;
+  shiftId: ShiftId;
+  /** Only used when shiftId === "custom" */
+  customDays: number;
+}
+
+export const DEFAULT_COMPARE: CompareSelection = {
+  enabled: false,
+  shiftId: "7d",
+  customDays: 7,
+};
+
+/**
+ * Which shift options are available for each preset (or for a custom selection).
+ * The first entry in the array is the auto-selected default when switching presets.
+ */
+export const SHIFT_OPTIONS_FOR_PRESET: Record<PresetId | "custom", ShiftId[]> = {
+  "today":      ["24h", "7d", "1mo", "custom"],
+  "this-week":  ["7d", "1mo", "custom"],
+  "last-7":     ["7d", "1mo", "custom"],
+  "this-month": ["1mo", "custom"],
+  "last-30":    ["1mo", "custom"],
+  "custom":     ["custom"],
+};
+
+/** Human-readable labels for each shift option shown in the picker dropdown. */
+export const SHIFT_DISPLAY_LABELS: Record<ShiftId, string> = {
+  "24h": "Yesterday (−24h)",
+  "7d":  "Week ago (−7d)",
+  "1mo": "Month ago (−30d)",
+  "custom": "Custom (X days)",
+};
+
+/** Short display suffix for the "NOW −" notation in the resolved-range row. */
+export const SHIFT_NOW_SUFFIX: Record<ShiftId, (customDays: number) => string> = {
+  "24h":    () => "NOW − 24h",
+  "7d":     () => "NOW − 7d",
+  "1mo":    () => "NOW − 30d",
+  "custom": (d) => `NOW − ${d}d`,
+};
+
+function shiftToMs(shiftId: ShiftId, customDays: number): number {
+  switch (shiftId) {
+    case "24h":    return 24 * 60 * 60 * 1000;
+    case "7d":     return 7  * 24 * 60 * 60 * 1000;
+    case "1mo":    return 30 * 24 * 60 * 60 * 1000;
+    case "custom": return customDays * 24 * 60 * 60 * 1000;
+  }
+}
+
+/**
+ * Resolves the reference (comparison) range by shifting the base range backward
+ * by the given ShiftId amount. The reference range has the same duration as the
+ * base range, just offset into the past.
+ */
+export function resolveShiftedRange(
+  selection: DateRangeSelection,
+  shiftId: ShiftId,
+  tz: string,
+  customDays: number = 7,
+): ResolvedRange {
+  const base = resolvePresetRange(selection, tz);
+  const ms = shiftToMs(shiftId, customDays);
+  return {
+    from: new Date(new Date(base.from).getTime() - ms).toISOString(),
+    to:   new Date(new Date(base.to).getTime()  - ms).toISOString(),
+  };
+}
+
+// ─── Compare URL / localStorage serialisation ─────────────────────────────────
+
+const VALID_SHIFT_IDS: ShiftId[] = ["24h", "7d", "1mo", "custom"];
+
+export function compareToUrlParams(compare: CompareSelection): Record<string, string> {
+  if (!compare.enabled) return {};
+  const params: Record<string, string> = {
+    compare: "true",
+    shift_id: compare.shiftId,
+  };
+  if (compare.shiftId === "custom") {
+    params.shift_days = String(compare.customDays);
+  }
+  return params;
+}
+
+export function compareFromUrlParams(params: URLSearchParams): CompareSelection | null {
+  if (params.get("compare") !== "true") return null;
+  const shiftId = params.get("shift_id") as ShiftId | null;
+  if (!shiftId || !(VALID_SHIFT_IDS as string[]).includes(shiftId)) return null;
+  const rawDays = Number(params.get("shift_days") ?? "7");
+  const customDays = Number.isFinite(rawDays) && rawDays > 0 ? rawDays : 7;
+  return { enabled: true, shiftId, customDays };
+}

@@ -7,16 +7,21 @@ import {
 } from "react";
 import {
   type DateRangeSelection,
+  type CompareSelection,
   type PresetId,
   PRESET_IDS,
+  DEFAULT_COMPARE,
   selectionFromUrlParams,
   selectionToUrlParams,
+  compareFromUrlParams,
+  compareToUrlParams,
 } from "@/lib/dateRange";
 
 const STORAGE_KEY = "drSelection";
+const COMPARE_STORAGE_KEY = "drCompare";
 const DEFAULT_SELECTION: DateRangeSelection = { presetId: "today" };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers — selection ──────────────────────────────────────────────────────
 
 function isValidSelection(v: unknown): v is DateRangeSelection {
   if (!v || typeof v !== "object") return false;
@@ -27,7 +32,7 @@ function isValidSelection(v: unknown): v is DateRangeSelection {
   return typeof o.presetId === "string" && (PRESET_IDS as string[]).includes(o.presetId as string);
 }
 
-function readFromUrl(): DateRangeSelection | null {
+function readSelectionFromUrl(): DateRangeSelection | null {
   try {
     return selectionFromUrlParams(new URLSearchParams(window.location.search));
   } catch {
@@ -35,7 +40,7 @@ function readFromUrl(): DateRangeSelection | null {
   }
 }
 
-function readFromStorage(): DateRangeSelection | null {
+function readSelectionFromStorage(): DateRangeSelection | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
@@ -46,16 +51,13 @@ function readFromStorage(): DateRangeSelection | null {
   }
 }
 
-function persist(selection: DateRangeSelection) {
+function persistSelection(selection: DateRangeSelection) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(selection));
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
   try {
     const urlParams = new URLSearchParams(window.location.search);
     const rangeParams = selectionToUrlParams(selection);
-    // Remove stale range keys first
     urlParams.delete("range_id");
     urlParams.delete("start");
     urlParams.delete("end");
@@ -64,9 +66,58 @@ function persist(selection: DateRangeSelection) {
     }
     const newSearch = urlParams.toString();
     window.history.replaceState(null, "", newSearch ? `?${newSearch}` : window.location.pathname);
+  } catch { /* ignore */ }
+}
+
+// ─── Helpers — compare ────────────────────────────────────────────────────────
+
+function isValidCompare(v: unknown): v is CompareSelection {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.enabled === "boolean" &&
+    typeof o.shiftId === "string" &&
+    ["24h", "7d", "1mo", "custom"].includes(o.shiftId as string) &&
+    typeof o.customDays === "number"
+  );
+}
+
+function readCompareFromUrl(): CompareSelection | null {
+  try {
+    return compareFromUrlParams(new URLSearchParams(window.location.search));
   } catch {
-    // ignore
+    return null;
   }
+}
+
+function readCompareFromStorage(): CompareSelection | null {
+  try {
+    const raw = localStorage.getItem(COMPARE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isValidCompare(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistCompare(compare: CompareSelection) {
+  try {
+    localStorage.setItem(COMPARE_STORAGE_KEY, JSON.stringify(compare));
+  } catch { /* ignore */ }
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    // Remove stale compare keys
+    urlParams.delete("compare");
+    urlParams.delete("shift_id");
+    urlParams.delete("shift_days");
+    const cmpParams = compareToUrlParams(compare);
+    for (const [k, v] of Object.entries(cmpParams)) {
+      urlParams.set(k, v);
+    }
+    const newSearch = urlParams.toString();
+    window.history.replaceState(null, "", newSearch ? `?${newSearch}` : window.location.pathname);
+  } catch { /* ignore */ }
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -74,6 +125,8 @@ function persist(selection: DateRangeSelection) {
 interface DateRangeContextValue {
   selection: DateRangeSelection;
   setSelection: (sel: DateRangeSelection) => void;
+  compare: CompareSelection;
+  setCompare: (c: CompareSelection) => void;
   // Legacy fields — kept so any remaining callers don't break immediately
   /** @deprecated Use selection + resolvePresetRange instead */
   tzInitialized: boolean;
@@ -85,18 +138,28 @@ const DateRangeContext = createContext<DateRangeContextValue | undefined>(undefi
 
 export function DateRangeProvider({ children }: { children: ReactNode }) {
   const [selection, setSelectionState] = useState<DateRangeSelection>(
-    () => readFromUrl() ?? readFromStorage() ?? DEFAULT_SELECTION,
+    () => readSelectionFromUrl() ?? readSelectionFromStorage() ?? DEFAULT_SELECTION,
+  );
+
+  const [compare, setCompareState] = useState<CompareSelection>(
+    () => readCompareFromUrl() ?? readCompareFromStorage() ?? DEFAULT_COMPARE,
   );
 
   // Sync URL on mount so it reflects whatever was loaded from storage
   useEffect(() => {
-    persist(selection);
+    persistSelection(selection);
+    persistCompare(compare);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const setSelection = (sel: DateRangeSelection) => {
     setSelectionState(sel);
-    persist(sel);
+    persistSelection(sel);
+  };
+
+  const setCompare = (c: CompareSelection) => {
+    setCompareState(c);
+    persistCompare(c);
   };
 
   return (
@@ -104,6 +167,8 @@ export function DateRangeProvider({ children }: { children: ReactNode }) {
       value={{
         selection,
         setSelection,
+        compare,
+        setCompare,
         // Legacy shims
         tzInitialized: true,
         setTzInitialized: () => {},
@@ -122,5 +187,8 @@ export function useDateRangeContext(): DateRangeContextValue {
 
 // Keeping the old tryLoadFromStorage export so any import doesn't crash
 export function tryLoadFromStorage() {
-  return readFromStorage() ?? DEFAULT_SELECTION;
+  return readSelectionFromStorage() ?? DEFAULT_SELECTION;
 }
+
+// Re-export PresetId so callers importing from the context file keep working
+export type { PresetId };

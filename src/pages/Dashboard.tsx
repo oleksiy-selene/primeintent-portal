@@ -5,7 +5,7 @@ import { usd, num, formatDateTime } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { DateRangePicker } from "@/components/_shared/DateRangePicker";
 import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
-import { resolvePresetRange, selectionLabel } from "@/lib/dateRange";
+import { resolvePresetRange, resolveShiftedRange, selectionLabel } from "@/lib/dateRange";
 import { useAuth } from "@/contexts/AuthContext";
 import { CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react";
 
@@ -179,12 +179,12 @@ function KpiCard({
 export default function Dashboard() {
   const { profile, isProfileLoaded } = useAuth();
   const tz = profile?.timezone ?? "America/New_York";
-  const [selection, setSelection] = useDateRangeWithTimezone();
+  const { selection, setSelection, compare } = useDateRangeWithTimezone();
 
   const rangeLabel = selectionLabel(selection, tz);
 
   const kpis = useQuery({
-    queryKey: ["dashboard-kpis", selection, tz],
+    queryKey: ["dashboard-kpis", selection, tz, compare],
     queryFn: () => {
       const { from, to } = resolvePresetRange(selection, tz);
       return fetchKpis(from, to);
@@ -193,7 +193,7 @@ export default function Dashboard() {
   });
 
   const recent = useQuery({
-    queryKey: ["dashboard-recent", selection, tz],
+    queryKey: ["dashboard-recent", selection, tz, compare],
     queryFn: () => {
       const { from, to } = resolvePresetRange(selection, tz);
       return fetchRecentConversions(from, to);
@@ -202,7 +202,7 @@ export default function Dashboard() {
   });
 
   const top = useQuery({
-    queryKey: ["dashboard-top", selection, tz],
+    queryKey: ["dashboard-top", selection, tz, compare],
     queryFn: () => {
       const { from, to } = resolvePresetRange(selection, tz);
       return fetchTopCampaigns(from, to);
