@@ -78,6 +78,11 @@ export function tzLabel(tz: string): string {
  *  2. Convert to target tz
  *  3. Compute period start in that tz
  *  4. Convert start back to UTC; end = now
+ *
+ * Design note: The function accepts a full `DateRangeSelection` (not just a
+ * `PresetId`) so that custom ranges (which carry their own UTC ISO strings)
+ * are handled uniformly by the same resolver. Callers never need to branch on
+ * preset-vs-custom — they always call `resolvePresetRange(selection, tz)`.
  */
 export function resolvePresetRange(
   selection: DateRangeSelection,

@@ -134,20 +134,18 @@ async function fetchCampaignFilterOptions() {
   return (data ?? []) as { campaign_id: number; name: string }[];
 }
 
-async function fetchVisitorStats() {
-  const sinceMidnight = new Date();
-  sinceMidnight.setHours(0, 0, 0, 0);
-  const iso = sinceMidnight.toISOString();
-
+async function fetchVisitorStats(from: string, to: string) {
   const [v, c] = await Promise.all([
     supabase
       .from("visitors")
       .select("visitor_id", { count: "exact", head: true })
-      .gte("created_at", iso),
+      .gte("created_at", from)
+      .lte("created_at", to),
     supabase
       .from("visitor_conversions")
       .select("payout_amount, enum_conversion_status!inner(name), created_at")
-      .gte("created_at", iso),
+      .gte("created_at", from)
+      .lte("created_at", to),
   ]);
   if (v.error) throw v.error;
   if (c.error) throw c.error;
@@ -206,8 +204,12 @@ export default function Visitors() {
   };
 
   const stats = useQuery({
-    queryKey: ["visitor-stats"],
-    queryFn: fetchVisitorStats,
+    queryKey: ["visitor-stats", selection, tz],
+    queryFn: () => {
+      const { from, to } = resolvePresetRange(selection, tz);
+      return fetchVisitorStats(from, to);
+    },
+    enabled: isProfileLoaded,
   });
 
   const visitors = useInfiniteQuery({
