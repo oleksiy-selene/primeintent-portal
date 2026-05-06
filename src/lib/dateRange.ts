@@ -72,22 +72,32 @@ export function tzLabel(tz: string): string {
 // ─── Core: Late-Binding Resolution ──────────────────────────────────────────
 
 /**
- * Resolves a DateRangeSelection to UTC ISO strings at the moment of the call
- * (late-binding). Uses the 4-step algorithm:
+ * Resolves a date-range selection to UTC ISO strings at the moment of the call
+ * (late-binding). Supports two calling conventions:
+ *
+ *   resolvePresetRange(presetId, tz)   — takes a PresetId string directly
+ *   resolvePresetRange(selection, tz)  — takes a full DateRangeSelection
+ *
+ * Uses the 4-step algorithm:
  *  1. Get current UTC instant
  *  2. Convert to target tz
  *  3. Compute period start in that tz
  *  4. Convert start back to UTC; end = now
  *
- * Design note: The function accepts a full `DateRangeSelection` (not just a
- * `PresetId`) so that custom ranges (which carry their own UTC ISO strings)
- * are handled uniformly by the same resolver. Callers never need to branch on
- * preset-vs-custom — they always call `resolvePresetRange(selection, tz)`.
+ * Custom ranges return their stored UTC ISO strings as-is (no boundary
+ * calculation needed — the user chose explicit boundaries).
  */
+export function resolvePresetRange(presetId: PresetId, tz: string): ResolvedRange;
+export function resolvePresetRange(selection: DateRangeSelection, tz: string): ResolvedRange;
 export function resolvePresetRange(
-  selection: DateRangeSelection,
+  selectionOrPreset: DateRangeSelection | PresetId,
   tz: string,
 ): ResolvedRange {
+  const selection: DateRangeSelection =
+    typeof selectionOrPreset === "string"
+      ? { presetId: selectionOrPreset }
+      : selectionOrPreset;
+
   if (selection.presetId === "custom") {
     return { from: selection.customFrom, to: selection.customTo };
   }
@@ -120,16 +130,9 @@ export function resolvePresetRange(
   };
 }
 
-/**
- * Convenience overload: resolve a preset by ID directly.
- * Equivalent to `resolvePresetRange({ presetId }, tz)`.
- */
-export function resolvePresetRangeById(
-  presetId: PresetId,
-  tz: string,
-): ResolvedRange {
-  return resolvePresetRange({ presetId }, tz);
-}
+/** Convenience alias for `resolvePresetRange(presetId, tz)` — both forms are identical. */
+export const resolvePresetRangeById = (presetId: PresetId, tz: string): ResolvedRange =>
+  resolvePresetRange(presetId, tz);
 
 /** Backward-compat alias — new code should use resolvePresetRange */
 export function getPresetRange(preset: PresetId, tz: string): DateRange {
