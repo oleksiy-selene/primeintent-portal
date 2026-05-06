@@ -120,6 +120,17 @@ export function resolvePresetRange(
   };
 }
 
+/**
+ * Convenience overload: resolve a preset by ID directly.
+ * Equivalent to `resolvePresetRange({ presetId }, tz)`.
+ */
+export function resolvePresetRangeById(
+  presetId: PresetId,
+  tz: string,
+): ResolvedRange {
+  return resolvePresetRange({ presetId }, tz);
+}
+
 /** Backward-compat alias — new code should use resolvePresetRange */
 export function getPresetRange(preset: PresetId, tz: string): DateRange {
   const { from, to } = resolvePresetRange({ presetId: preset }, tz);
