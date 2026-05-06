@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { writeTzToUrl } from "@/lib/dateRange";
 
 export interface Profile {
   user_id: string;
@@ -57,7 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const raw = data as (Profile & { timezone?: string | null }) | null;
-    setProfile(raw ? { ...raw, timezone: raw.timezone ?? "America/New_York" } : null);
+    const resolved = raw ? { ...raw, timezone: raw.timezone ?? "America/New_York" } : null;
+    setProfile(resolved);
+    if (resolved?.timezone) writeTzToUrl(resolved.timezone);
     setIsProfileLoaded(true);
   };
 
@@ -122,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq("user_id", userId);
         if (error) throw error;
         setProfile((prev) => (prev ? { ...prev, timezone: tz } : prev));
+        writeTzToUrl(tz);
       },
     }),
     [session, profile, loading, isProfileLoaded],

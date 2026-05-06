@@ -72,7 +72,7 @@ interface RecentConversion {
   } | null;
 }
 
-async function fetchRecentConversions(): Promise<RecentConversion[]> {
+async function fetchRecentConversions(from: string, to: string): Promise<RecentConversion[]> {
   const { data, error } = await supabase
     .from("visitor_conversions")
     .select(
@@ -89,6 +89,8 @@ async function fetchRecentConversions(): Promise<RecentConversion[]> {
       )
     `,
     )
+    .gte("created_at", from)
+    .lte("created_at", to)
     .order("created_at", { ascending: false })
     .limit(10);
 
@@ -191,8 +193,12 @@ export default function Dashboard() {
   });
 
   const recent = useQuery({
-    queryKey: ["dashboard-recent"],
-    queryFn: () => fetchRecentConversions(),
+    queryKey: ["dashboard-recent", selection, tz],
+    queryFn: () => {
+      const { from, to } = resolvePresetRange(selection, tz);
+      return fetchRecentConversions(from, to);
+    },
+    enabled: isProfileLoaded,
   });
 
   const top = useQuery({

@@ -166,6 +166,28 @@ export function selectionFromUrlParams(
   return null;
 }
 
+// ─── Timezone URL sync ───────────────────────────────────────────────────────
+
+/**
+ * Writes (or updates) the `?tz=` URL param to reflect the current timezone.
+ * Called by AuthContext after the profile loads and after setTimezone succeeds.
+ * Safe to call at any time — does not touch range_id/start/end params.
+ */
+export function writeTzToUrl(tz: string): void {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set("tz", tz);
+    const newSearch = urlParams.toString();
+    window.history.replaceState(
+      null,
+      "",
+      newSearch ? `?${newSearch}` : window.location.pathname,
+    );
+  } catch {
+    // ignore — URL writes are best-effort
+  }
+}
+
 // ─── datetime-local helpers ──────────────────────────────────────────────────
 
 /**
