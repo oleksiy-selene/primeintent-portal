@@ -1,6 +1,7 @@
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import {
   startOfDay,
+  endOfDay,
   startOfWeek,
   startOfMonth,
   subDays,
@@ -9,7 +10,7 @@ import {
 
 // ─── Typed IDs ────────────────────────────────────────────────────────────────
 
-export type PresetId = "today" | "this-week" | "last-7" | "this-month" | "last-30";
+export type PresetId = "today" | "yesterday" | "this-week" | "last-7" | "this-month" | "last-30";
 
 /** Backward-compat alias — prefer PresetId in new code */
 export type PresetKey = PresetId;
@@ -40,6 +41,7 @@ export interface DateRange extends ResolvedRange {
 
 export const PRESETS: { id: PresetId; label: string }[] = [
   { id: "today", label: "Today" },
+  { id: "yesterday", label: "Yesterday" },
   { id: "this-week", label: "This Week" },
   { id: "last-7", label: "Last 7 Days" },
   { id: "this-month", label: "This Month" },
@@ -105,6 +107,14 @@ export function resolvePresetRange(
 
   const nowUtc = new Date();
   const nowZoned = toZonedTime(nowUtc, tz);
+
+  if (selection.presetId === "yesterday") {
+    const yd = subDays(nowZoned, 1);
+    return {
+      from: fromZonedTime(startOfDay(yd), tz).toISOString(),
+      to: fromZonedTime(endOfDay(yd), tz).toISOString(),
+    };
+  }
 
   let startZoned: Date;
   switch (selection.presetId) {
@@ -269,6 +279,7 @@ export const DEFAULT_COMPARE: CompareSelection = {
  */
 export const SHIFT_OPTIONS_FOR_PRESET: Record<PresetId | "custom", ShiftId[]> = {
   "today":      ["24h", "7d", "1mo", "custom"],
+  "yesterday":  ["24h", "7d", "1mo", "custom"],
   "this-week":  ["7d", "1mo", "custom"],
   "last-7":     ["7d", "1mo", "custom"],
   "this-month": ["1mo", "custom"],

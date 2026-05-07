@@ -144,16 +144,17 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
   let baseTo = "";
   let refFrom = "";
   let refTo = "";
-  const isPreset = value.presetId !== "custom";
+  // "Yesterday" is a closed past interval — its end is not "NOW"
+  const isLivePreset = value.presetId !== "custom" && value.presetId !== "yesterday";
 
   if (compare.enabled) {
     try {
       const base = resolvePresetRange(value, tz);
       const ref = resolveShiftedRange(value, effectiveShiftId, tz, compare.customDays);
       baseFrom = fmtShort(base.from, tz);
-      baseTo = isPreset ? "NOW" : fmtShort(base.to, tz);
+      baseTo = isLivePreset ? "NOW" : fmtShort(base.to, tz);
       refFrom = fmtShort(ref.from, tz);
-      refTo = isPreset
+      refTo = isLivePreset
         ? SHIFT_NOW_SUFFIX[effectiveShiftId](compare.customDays)
         : fmtShort(ref.to, tz);
     } catch {
