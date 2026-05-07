@@ -4,6 +4,14 @@ interface DeltaChipProps {
   isInverse?: boolean;
 }
 
+function NA() {
+  return (
+    <span className="block text-[0.85em] font-normal text-slate-300 tabular-nums">
+      n/a
+    </span>
+  );
+}
+
 export function DeltaChip({ current, reference, isInverse = false }: DeltaChipProps) {
   const refPositive =
     reference != null && Number.isFinite(reference) && reference > 0;
@@ -17,45 +25,33 @@ export function DeltaChip({ current, reference, isInverse = false }: DeltaChipPr
   }
 
   if (current == null || !Number.isFinite(current)) {
-    return (
-      <span className="block text-[0.85em] font-normal text-slate-400 tabular-nums">
-        —
-      </span>
-    );
+    return <NA />;
   }
 
   const refMissing = reference == null || reference === 0 || !Number.isFinite(reference);
 
   if (refMissing) {
     if (current > 0) {
-      const colorClass = isInverse ? "text-red-400" : "text-green-400";
+      const colorClass = isInverse ? "text-red-400" : "text-emerald-600";
       return (
         <span className={`block text-[0.85em] font-semibold ${colorClass}`}>
           NEW
         </span>
       );
     }
-    return (
-      <span className="block text-[0.85em] font-normal text-slate-400 tabular-nums">
-        —
-      </span>
-    );
+    return <NA />;
   }
 
   const delta = ((current - reference) / Math.abs(reference)) * 100;
 
   if (!Number.isFinite(delta)) {
-    return (
-      <span className="block text-[0.85em] font-normal text-slate-400 tabular-nums">
-        —
-      </span>
-    );
+    return <NA />;
   }
 
   if (delta === 0) {
     return (
       <span className="block text-[0.85em] font-normal text-slate-400 tabular-nums">
-        (0.0%)
+        (0%)
       </span>
     );
   }
@@ -63,11 +59,11 @@ export function DeltaChip({ current, reference, isInverse = false }: DeltaChipPr
   const isPositive = delta > 0;
   const isGood = isInverse ? !isPositive : isPositive;
   const sign = isPositive ? "+" : "";
-  const colorClass = isGood ? "text-green-400" : "text-red-400";
+  const colorClass = isGood ? "text-emerald-600" : "text-red-400";
 
   return (
     <span className={`block text-[0.85em] font-normal tabular-nums ${colorClass}`}>
-      ({sign}{delta.toFixed(1)}%)
+      ({sign}{Math.round(delta)}%)
     </span>
   );
 }
