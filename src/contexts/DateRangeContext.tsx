@@ -15,6 +15,7 @@ import {
   selectionToUrlParams,
   compareFromUrlParams,
   compareToUrlParams,
+  normalizeCompare,
 } from "@/lib/dateRange";
 
 const STORAGE_KEY = "drSelection";
@@ -137,13 +138,20 @@ interface DateRangeContextValue {
 const DateRangeContext = createContext<DateRangeContextValue | undefined>(undefined);
 
 export function DateRangeProvider({ children }: { children: ReactNode }) {
-  const [selection, setSelectionState] = useState<DateRangeSelection>(
-    () => readSelectionFromUrl() ?? readSelectionFromStorage() ?? DEFAULT_SELECTION,
-  );
+  // Compute initial values once; normalise compare against selection so that
+  // stale URL/localStorage state (e.g. shift_id=24h with preset=this-month)
+  // is corrected before the first render.
+  const [initials] = useState(() => {
+    const sel = readSelectionFromUrl() ?? readSelectionFromStorage() ?? DEFAULT_SELECTION;
+    const cmp = normalizeCompare(
+      readCompareFromUrl() ?? readCompareFromStorage() ?? DEFAULT_COMPARE,
+      sel,
+    );
+    return { sel, cmp };
+  });
 
-  const [compare, setCompareState] = useState<CompareSelection>(
-    () => readCompareFromUrl() ?? readCompareFromStorage() ?? DEFAULT_COMPARE,
-  );
+  const [selection, setSelectionState] = useState<DateRangeSelection>(initials.sel);
+  const [compare, setCompareState] = useState<CompareSelection>(initials.cmp);
 
   // Sync URL on mount so it reflects whatever was loaded from storage
   useEffect(() => {
@@ -155,6 +163,15 @@ export function DateRangeProvider({ children }: { children: ReactNode }) {
   const setSelection = (sel: DateRangeSelection) => {
     setSelectionState(sel);
     persistSelection(sel);
+    // Normalise shiftId whenever the preset changes so compare state stays valid
+    setCompareState((prev) => {
+      const normalised = normalizeCompare(prev, sel);
+      if (normalised.shiftId !== prev.shiftId) {
+        persistCompare(normalised);
+        return normalised;
+      }
+      return prev;
+    });
   };
 
   const setCompare = (c: CompareSelection) => {

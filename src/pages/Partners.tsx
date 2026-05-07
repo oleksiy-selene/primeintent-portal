@@ -468,6 +468,11 @@ export default function Partners() {
     queryKey: ["partner-perf", partnerIds, selection, tz, compare],
     queryFn: () => {
       const range = resolvePresetRange(selection, tz);
+      // Reference range for Task #15 delta rendering (no-op until then)
+      const _referenceRange = compare.enabled
+        ? resolveShiftedRange(selection, compare.shiftId, tz, compare.customDays)
+        : null;
+      void _referenceRange;
       return fetchPartnerPerf(partnerIds, range);
     },
     enabled: partnerIds.length > 0 && isProfileLoaded,

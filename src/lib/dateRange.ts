@@ -319,6 +319,23 @@ export function resolveShiftedRange(
   };
 }
 
+/**
+ * Normalizes a CompareSelection against the active DateRangeSelection, returning
+ * a corrected copy if the stored shiftId is not valid for the current preset.
+ * This is the authoritative normalization point — call it on context init and
+ * whenever the selection changes.
+ */
+export function normalizeCompare(
+  compare: CompareSelection,
+  selection: DateRangeSelection,
+): CompareSelection {
+  const allowed = SHIFT_OPTIONS_FOR_PRESET[selection.presetId];
+  if (!allowed.includes(compare.shiftId)) {
+    return { ...compare, shiftId: allowed[0] };
+  }
+  return compare;
+}
+
 // ─── Compare URL / localStorage serialisation ─────────────────────────────────
 
 const VALID_SHIFT_IDS: ShiftId[] = ["24h", "7d", "1mo", "custom"];

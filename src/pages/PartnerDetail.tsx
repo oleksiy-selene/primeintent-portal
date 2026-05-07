@@ -615,6 +615,11 @@ export default function PartnerDetail() {
     queryKey: ["partner-campaign-performance", visibleIds, selection, tz, compare],
     queryFn: () => {
       const range = resolvePresetRange(selection, tz);
+      // Reference range for Task #15 delta rendering (no-op until then)
+      const _referenceRange = compare.enabled
+        ? resolveShiftedRange(selection, compare.shiftId, tz, compare.customDays)
+        : null;
+      void _referenceRange;
       return fetchPerformance(visibleIds, range);
     },
     enabled: visibleIds.length > 0 && isProfileLoaded,

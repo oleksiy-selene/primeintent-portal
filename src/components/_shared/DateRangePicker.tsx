@@ -127,7 +127,16 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
   }
 
   function toggleCompare() {
-    setCompare({ ...compare, enabled: !compare.enabled });
+    if (!compare.enabled && value.presetId === "custom") {
+      // When enabling compare for a custom selection, auto-set customDays to
+      // the duration of the custom range so the reference period matches intent.
+      const durationMs =
+        new Date(value.customTo).getTime() - new Date(value.customFrom).getTime();
+      const durationDays = Math.max(1, Math.round(durationMs / (24 * 60 * 60 * 1000)));
+      setCompare({ ...compare, enabled: true, shiftId: "custom", customDays: durationDays });
+    } else {
+      setCompare({ ...compare, enabled: !compare.enabled });
+    }
   }
 
   // Resolved ranges for the display rows (only computed when compare is enabled)
