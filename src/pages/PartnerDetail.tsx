@@ -19,6 +19,7 @@ import { useSortState } from "@/lib/useSortState";
 import { SortableHeader } from "@/components/SortableHeader";
 import { CampaignDialog } from "@/components/CampaignDialog";
 import { num, usd, formatDate } from "@/lib/format";
+import { DeltaChip } from "@/components/DeltaChip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -627,8 +628,20 @@ export default function PartnerDetail() {
     enabled: visibleIds.length > 0 && isProfileLoaded,
   });
 
+  const performanceRefQ = useQuery({
+    queryKey: ["partner-campaign-performance-ref", visibleIds, selection, tz, compare],
+    queryFn: () => {
+      const refRange = resolveShiftedRange(selection, compare.shiftId, tz, compare.customDays);
+      return fetchPerformance(visibleIds, refRange);
+    },
+    enabled: compare.enabled && visibleIds.length > 0 && isProfileLoaded,
+  });
+
   const perfFor = (id: number) =>
     performanceQ.data?.get(id) ?? { visitors: 0, revenue: 0, cost: 0 };
+
+  const refPerfFor = (id: number) =>
+    performanceRefQ.data?.get(id) ?? null;
 
   const sentinelRef = useRef<HTMLTableRowElement | null>(null);
   useEffect(() => {
@@ -863,6 +876,8 @@ export default function PartnerDetail() {
                         const status = c.enum_campaign_status?.name ?? "—";
                         const p = perfFor(c.campaign_id);
                         const profit = p.revenue - p.cost;
+                        const ref = refPerfFor(c.campaign_id);
+                        const refProfit = ref ? ref.revenue - ref.cost : null;
                         return (
                           <TableRow key={c.campaign_id} className="hover:bg-slate-50/50 transition-colors">
                             <TableCell className="pl-6">
@@ -872,20 +887,40 @@ export default function PartnerDetail() {
                               </div>
                             </TableCell>
                             <TableCell className="text-slate-700 text-right tabular-nums">
-                              {performanceQ.isFetching ? "…" : num(p.visitors)}
+                              {performanceQ.isFetching ? "…" : (
+                                <>
+                                  {num(p.visitors)}
+                                  {compare.enabled && <DeltaChip current={p.visitors} reference={ref?.visitors} />}
+                                </>
+                              )}
                             </TableCell>
                             <TableCell className="text-slate-700 text-right tabular-nums">
-                              {performanceQ.isFetching ? "…" : usd(p.revenue)}
+                              {performanceQ.isFetching ? "…" : (
+                                <>
+                                  {usd(p.revenue)}
+                                  {compare.enabled && <DeltaChip current={p.revenue} reference={ref?.revenue} />}
+                                </>
+                              )}
                             </TableCell>
                             <TableCell className="text-slate-700 text-right tabular-nums">
-                              {performanceQ.isFetching ? "…" : usd(p.cost)}
+                              {performanceQ.isFetching ? "…" : (
+                                <>
+                                  {usd(p.cost)}
+                                  {compare.enabled && <DeltaChip current={p.cost} reference={ref?.cost} isInverse />}
+                                </>
+                              )}
                             </TableCell>
                             <TableCell
                               className={`text-right tabular-nums font-medium ${
                                 profit >= 0 ? "text-emerald-700" : "text-rose-700"
                               }`}
                             >
-                              {performanceQ.isFetching ? "…" : usd(profit)}
+                              {performanceQ.isFetching ? "…" : (
+                                <>
+                                  {usd(profit)}
+                                  {compare.enabled && <DeltaChip current={profit} reference={refProfit} />}
+                                </>
+                              )}
                             </TableCell>
                             <TableCell>
                               <Badge

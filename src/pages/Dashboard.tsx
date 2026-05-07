@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/_shared/AppLayout";
 import { Header } from "@/components/_shared/Header";
 import { usd, num, formatDateTime } from "@/lib/format";
+import { DeltaChip } from "@/components/DeltaChip";
 import { supabase } from "@/lib/supabase";
 import { DateRangePicker } from "@/components/_shared/DateRangePicker";
 import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
@@ -164,10 +165,16 @@ function KpiCard({
   title,
   value,
   range,
+  current,
+  reference,
+  isInverse,
 }: {
   title: string;
   value: string | number;
   range: string;
+  current?: number | null;
+  reference?: number | null;
+  isInverse?: boolean;
 }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
@@ -175,6 +182,11 @@ function KpiCard({
       <div className="mt-2 flex items-baseline gap-2">
         <span className="text-2xl font-semibold text-slate-900">{value}</span>
       </div>
+      {current != null && (
+        <div className="mt-0.5">
+          <DeltaChip current={current} reference={reference} isInverse={isInverse} />
+        </div>
+      )}
       <div className="mt-4 text-xs text-slate-400">{range}</div>
     </div>
   );
@@ -199,6 +211,15 @@ export default function Dashboard() {
     enabled: isProfileLoaded,
   });
 
+  const kpisRef = useQuery({
+    queryKey: ["dashboard-kpis-ref", selection, tz, compare],
+    queryFn: () => {
+      const { from, to } = resolveShiftedRange(selection, compare.shiftId, tz, compare.customDays);
+      return fetchKpis(from, to);
+    },
+    enabled: compare.enabled && isProfileLoaded,
+  });
+
   const recent = useQuery({
     queryKey: ["dashboard-recent", selection, tz, compare],
     queryFn: () => {
@@ -218,6 +239,7 @@ export default function Dashboard() {
   });
 
   const profit = (kpis.data?.revenue ?? 0) - (kpis.data?.cost ?? 0);
+  const refProfit = kpisRef.data ? kpisRef.data.revenue - kpisRef.data.cost : null;
   const maxRevenue = Math.max(1, ...(top.data ?? []).map((c) => c.revenue));
 
   return (
@@ -236,21 +258,29 @@ export default function Dashboard() {
             title="Total Visitors"
             value={kpis.isLoading ? "—" : num(kpis.data?.visitors ?? 0)}
             range={rangeLabel}
+            current={compare.enabled && !kpis.isLoading ? (kpis.data?.visitors ?? 0) : undefined}
+            reference={kpisRef.data?.visitors}
           />
           <KpiCard
             title="Approved Conversions"
             value={kpis.isLoading ? "—" : num(kpis.data?.conversions ?? 0)}
             range={rangeLabel}
+            current={compare.enabled && !kpis.isLoading ? (kpis.data?.conversions ?? 0) : undefined}
+            reference={kpisRef.data?.conversions}
           />
           <KpiCard
             title="Revenue"
             value={kpis.isLoading ? "—" : usd(kpis.data?.revenue ?? 0)}
             range={rangeLabel}
+            current={compare.enabled && !kpis.isLoading ? (kpis.data?.revenue ?? 0) : undefined}
+            reference={kpisRef.data?.revenue}
           />
           <KpiCard
             title="Profit"
             value={kpis.isLoading ? "—" : usd(profit)}
             range={rangeLabel}
+            current={compare.enabled && !kpis.isLoading ? profit : undefined}
+            reference={refProfit}
           />
         </div>
 

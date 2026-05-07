@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Search, Loader2, Edit2 } from "lucide-react";
 import { num, usd, formatDate } from "@/lib/format";
+import { DeltaChip } from "@/components/DeltaChip";
 
 type CampaignsSortKey =
   | "name"
@@ -290,8 +291,20 @@ export default function Campaigns() {
     enabled: visibleIds.length > 0 && isProfileLoaded,
   });
 
+  const perfRef = useQuery({
+    queryKey: ["campaign-performance-ref", visibleIds, selection, tz, compare],
+    queryFn: () => {
+      const { from, to } = resolveShiftedRange(selection, compare.shiftId, tz, compare.customDays);
+      return fetchPerformance(visibleIds, from, to);
+    },
+    enabled: compare.enabled && visibleIds.length > 0 && isProfileLoaded,
+  });
+
   const perfFor = (id: number) =>
     performance.data?.get(id) ?? { visitors: 0, revenue: 0, cost: 0 };
+
+  const refPerfFor = (id: number) =>
+    perfRef.data?.get(id) ?? null;
 
   const sentinelRef = useRef<HTMLTableRowElement | null>(null);
   useEffect(() => {
@@ -470,6 +483,8 @@ export default function Campaigns() {
                   const status = c.enum_campaign_status?.name ?? "—";
                   const p = perfFor(c.campaign_id);
                   const profit = p.revenue - p.cost;
+                  const ref = refPerfFor(c.campaign_id);
+                  const refProfit = ref ? ref.revenue - ref.cost : null;
                   return (
                     <TableRow
                       key={c.campaign_id}
@@ -487,20 +502,40 @@ export default function Campaigns() {
                         {c.partners?.name ?? "—"}
                       </TableCell>
                       <TableCell className="text-slate-700 text-right tabular-nums">
-                        {performance.isFetching ? "…" : num(p.visitors)}
+                        {performance.isFetching ? "…" : (
+                          <>
+                            {num(p.visitors)}
+                            {compare.enabled && <DeltaChip current={p.visitors} reference={ref?.visitors} />}
+                          </>
+                        )}
                       </TableCell>
                       <TableCell className="text-slate-700 text-right tabular-nums">
-                        {performance.isFetching ? "…" : usd(p.revenue)}
+                        {performance.isFetching ? "…" : (
+                          <>
+                            {usd(p.revenue)}
+                            {compare.enabled && <DeltaChip current={p.revenue} reference={ref?.revenue} />}
+                          </>
+                        )}
                       </TableCell>
                       <TableCell className="text-slate-700 text-right tabular-nums">
-                        {performance.isFetching ? "…" : usd(p.cost)}
+                        {performance.isFetching ? "…" : (
+                          <>
+                            {usd(p.cost)}
+                            {compare.enabled && <DeltaChip current={p.cost} reference={ref?.cost} isInverse />}
+                          </>
+                        )}
                       </TableCell>
                       <TableCell
                         className={`text-right tabular-nums font-medium ${
                           profit >= 0 ? "text-emerald-700" : "text-rose-700"
                         }`}
                       >
-                        {performance.isFetching ? "…" : usd(profit)}
+                        {performance.isFetching ? "…" : (
+                          <>
+                            {usd(profit)}
+                            {compare.enabled && <DeltaChip current={profit} reference={refProfit} />}
+                          </>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge

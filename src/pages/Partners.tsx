@@ -14,6 +14,7 @@ import { AppLayout } from "@/components/_shared/AppLayout";
 import { Header } from "@/components/_shared/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { num, usd, formatDate, formatTime } from "@/lib/format";
+import { DeltaChip } from "@/components/DeltaChip";
 import { supabase } from "@/lib/supabase";
 import { useInfiniteScroll, PAGE_SIZE } from "@/lib/useInfiniteScroll";
 import { useSortState } from "@/lib/useSortState";
@@ -478,6 +479,16 @@ export default function Partners() {
     staleTime: 60_000,
   });
 
+  const refPerf = useQuery({
+    queryKey: ["partner-perf-ref", partnerIds, selection, tz, compare],
+    queryFn: () => {
+      const refRange = resolveShiftedRange(selection, compare.shiftId, tz, compare.customDays);
+      return fetchPartnerPerf(partnerIds, refRange);
+    },
+    enabled: compare.enabled && partnerIds.length > 0 && isProfileLoaded,
+    staleTime: 60_000,
+  });
+
   const sentinelRef = useInfiniteScroll<HTMLTableRowElement>({
     hasMore: !!partners.hasNextPage,
     isLoading: partners.isFetchingNextPage,
@@ -619,6 +630,8 @@ export default function Partners() {
                   const perf_ = perf.data?.get(p.partner_id) ?? { visitors: 0, revenue: 0, cost: 0 };
                   const profit = perf_.revenue - perf_.cost;
                   const campaignCount = p.campaigns?.[0]?.count ?? 0;
+                  const refPerf_ = refPerf.data?.get(p.partner_id) ?? null;
+                  const refProfit = refPerf_ ? refPerf_.revenue - refPerf_.cost : null;
                   return (
                     <TableRow
                       key={p.partner_id}
@@ -659,30 +672,42 @@ export default function Partners() {
                         {perf.isLoading ? (
                           <span className="text-slate-300">—</span>
                         ) : (
-                          num(perf_.visitors)
+                          <>
+                            {num(perf_.visitors)}
+                            {compare.enabled && <DeltaChip current={perf_.visitors} reference={refPerf_?.visitors} />}
+                          </>
                         )}
                       </TableCell>
                       <TableCell className="text-right text-sm text-slate-700">
                         {perf.isLoading ? (
                           <span className="text-slate-300">—</span>
                         ) : (
-                          usd(perf_.revenue)
+                          <>
+                            {usd(perf_.revenue)}
+                            {compare.enabled && <DeltaChip current={perf_.revenue} reference={refPerf_?.revenue} />}
+                          </>
                         )}
                       </TableCell>
                       <TableCell className="text-right text-sm text-slate-700">
                         {perf.isLoading ? (
                           <span className="text-slate-300">—</span>
                         ) : (
-                          usd(perf_.cost)
+                          <>
+                            {usd(perf_.cost)}
+                            {compare.enabled && <DeltaChip current={perf_.cost} reference={refPerf_?.cost} isInverse />}
+                          </>
                         )}
                       </TableCell>
                       <TableCell className="text-right text-sm font-medium">
                         {perf.isLoading ? (
                           <span className="text-slate-300">—</span>
                         ) : (
-                          <span className={profit >= 0 ? "text-emerald-600" : "text-rose-500"}>
-                            {usd(profit)}
-                          </span>
+                          <>
+                            <span className={profit >= 0 ? "text-emerald-600" : "text-rose-500"}>
+                              {usd(profit)}
+                            </span>
+                            {compare.enabled && <DeltaChip current={profit} reference={refProfit} />}
+                          </>
                         )}
                       </TableCell>
                       <TableCell className="text-right pr-6">

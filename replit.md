@@ -23,6 +23,7 @@ A React + Vite admin portal for managing affiliate marketing partners, campaigns
 - `src/components/_shared/Header.tsx` — sticky header with timezone popover (saves to `profiles.timezone`)
 - `src/components/_shared/DateRangePicker.tsx` — shared date range control with presets + custom mode
 - `src/components/_shared/Sidebar.tsx` — nav sidebar
+- `src/components/DeltaChip.tsx` — `((current−ref)/|ref|)×100` delta chip (supports `isInverse` for Cost)
 - `src/components/SortableHeader.tsx` — sortable table column header
 - `src/components/CampaignDialog.tsx` — create/edit campaign dialog
 - `src/pages/Partners.tsx` — partner list with perf columns, date range filter
@@ -49,7 +50,7 @@ A React + Vite admin portal for managing affiliate marketing partners, campaigns
 - **Partner detail**: overview tab (editable fields, postback URL + tokens, status/type), campaigns tab (search, status filter, date range filter, perf columns, add/edit campaign dialog), status badge in header
 - **Header**: global timezone selector (popover, saves to `profiles.timezone` in Supabase), sticky across all pages
 - **DateRangePicker**: presets + Custom datetime inputs + Compare toggle (context-sensitive shift selector, "NOW" notation range display); all preset boundaries computed in user's selected IANA timezone
-- **Compare mode**: toggle in DateRangePicker reveals shift selector (−24h/−7d/−30d/custom) filtered by active preset; compare state (`enabled`, `shiftId`, `customDays`) syncs to URL (`?compare=true&shift_id=…`) and `localStorage`; `resolveShiftedRange` generates the reference `{ from, to }` for Task #15
+- **Compare mode**: toggle in DateRangePicker reveals shift selector (−24h/−7d/−30d/custom) filtered by active preset; compare state syncs to URL + `localStorage`; when enabled, a parallel reference-period query fires per page and `DeltaChip` renders `((current−ref)/|ref|)×100` beneath each metric (Revenue/Visitors/Profit: green=up; Cost: inverse)
 - **Auth**: email/password login via Supabase Auth, role-based write access (admin/manager vs viewer)
 
 ## Architecture notes
