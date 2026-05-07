@@ -137,7 +137,6 @@ async function fetchCampaignFilterOptions() {
 async function fetchVisitorStats(
   from: string,
   to: string,
-  _referenceRange?: { from: string; to: string } | null,
 ) {
   const [v, c] = await Promise.all([
     supabase

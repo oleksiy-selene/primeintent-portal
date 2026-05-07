@@ -146,7 +146,6 @@ async function fetchPerformance(
   campaignIds: number[],
   from: string,
   to: string,
-  _referenceRange?: { from: string; to: string } | null,
 ): Promise<Map<number, PerfTotals>> {
   const result = new Map<number, PerfTotals>();
   campaignIds.forEach((id) =>
@@ -283,10 +282,7 @@ export default function Campaigns() {
     queryKey: ["campaign-performance", visibleIds, selection, tz, compare],
     queryFn: () => {
       const { from, to } = resolvePresetRange(selection, tz);
-      const referenceRange = compare.enabled
-        ? resolveShiftedRange(selection, compare.shiftId, tz, compare.customDays)
-        : null;
-      return fetchPerformance(visibleIds, from, to, referenceRange);
+      return fetchPerformance(visibleIds, from, to);
     },
     enabled: visibleIds.length > 0 && isProfileLoaded,
   });

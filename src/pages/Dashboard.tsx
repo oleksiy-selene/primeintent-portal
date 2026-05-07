@@ -20,7 +20,6 @@ interface KpiData {
 async function fetchKpis(
   from: string,
   to: string,
-  _referenceRange?: { from: string; to: string } | null,
 ): Promise<KpiData> {
   const [visitorsRes, conversionsRes, expensesRes] = await Promise.all([
     supabase
@@ -203,10 +202,7 @@ export default function Dashboard() {
     queryKey: ["dashboard-kpis", selection, tz, compare],
     queryFn: () => {
       const { from, to } = resolvePresetRange(selection, tz);
-      const referenceRange = compare.enabled
-        ? resolveShiftedRange(selection, compare.shiftId, tz, compare.customDays)
-        : null;
-      return fetchKpis(from, to, referenceRange);
+      return fetchKpis(from, to);
     },
     enabled: isProfileLoaded,
   });
