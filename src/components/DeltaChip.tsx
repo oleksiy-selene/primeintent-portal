@@ -1,16 +1,3 @@
-/**
- * DeltaChip — renders a percentage-change delta beneath a primary metric.
- *
- * Formula: ((current − reference) / |reference|) × 100
- *
- * Polarity conventions:
- *   isInverse=false  (Revenue, Visitors, Conversions): increase → green, decrease → red
- *   isInverse=true   (Cost):                           increase → red,   decrease → green
- *
- * Renders a grey "—" when reference is 0, null, undefined, or not finite.
- * Displayed in parentheses at font-size 0.85em, no bold weight.
- */
-
 interface DeltaChipProps {
   current: number | null | undefined;
   reference: number | null | undefined;
