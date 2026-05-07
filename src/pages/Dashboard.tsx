@@ -234,6 +234,19 @@ export default function Dashboard() {
     enabled: isProfileLoaded,
   });
 
+  const topRef = useQuery({
+    queryKey: ["dashboard-top-ref", selection, tz, compare],
+    queryFn: () => {
+      const { from, to } = resolveShiftedRange(selection, compare.shiftId, tz, compare.customDays);
+      return fetchTopCampaigns(from, to);
+    },
+    enabled: compare.enabled && isProfileLoaded,
+  });
+
+  const topRefMap = new Map<number, number>(
+    (topRef.data ?? []).map((c) => [c.campaign_id, c.revenue]),
+  );
+
   const profit = (kpis.data?.revenue ?? 0) - (kpis.data?.cost ?? 0);
   const refProfit = kpisRef.data ? kpisRef.data.revenue - kpisRef.data.cost : null;
   const maxRevenue = Math.max(1, ...(top.data ?? []).map((c) => c.revenue));
@@ -362,9 +375,18 @@ export default function Dashboard() {
                     <span className="text-sm font-medium text-slate-900 truncate">
                       {c.name}
                     </span>
-                    <span className="text-sm font-semibold text-slate-900">
-                      {usd(c.revenue)}
-                    </span>
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-semibold text-slate-900">
+                        {usd(c.revenue)}
+                      </span>
+                      {compare.enabled && (
+                        <DeltaChip
+                          current={c.revenue}
+                          reference={topRefMap.get(c.campaign_id) ?? null}
+                          isInverse={false}
+                        />
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-slate-500 w-24 truncate">
