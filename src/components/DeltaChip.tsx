@@ -5,13 +5,25 @@ interface DeltaChipProps {
 }
 
 export function DeltaChip({ current, reference, isInverse = false }: DeltaChipProps) {
-  if (
-    current == null ||
-    reference == null ||
-    reference === 0 ||
-    !Number.isFinite(current) ||
-    !Number.isFinite(reference)
-  ) {
+  if (current == null || !Number.isFinite(current)) {
+    return (
+      <span className="block text-[0.85em] font-normal text-slate-400 tabular-nums">
+        —
+      </span>
+    );
+  }
+
+  const refMissing = reference == null || reference === 0 || !Number.isFinite(reference);
+
+  if (refMissing) {
+    if (current > 0) {
+      const colorClass = isInverse ? "text-red-400" : "text-green-400";
+      return (
+        <span className={`block text-[0.85em] font-semibold ${colorClass}`}>
+          NEW
+        </span>
+      );
+    }
     return (
       <span className="block text-[0.85em] font-normal text-slate-400 tabular-nums">
         —
