@@ -289,10 +289,10 @@ export const SHIFT_OPTIONS_FOR_PRESET: Record<PresetId | "custom", ShiftId[]> = 
 
 /** Human-readable labels for each shift option shown in the picker dropdown. */
 export const SHIFT_DISPLAY_LABELS: Record<ShiftId, string> = {
-  "24h": "Yesterday (−24h)",
-  "7d":  "Week ago (−7d)",
-  "1mo": "Month ago (−30d)",
-  "custom": "Custom (X days)",
+  "24h": "Prior day",
+  "7d":  "Prior week",
+  "1mo": "Prior month",
+  "custom": "Custom period",
 };
 
 /** Short display suffix for the "NOW −" notation in the resolved-range row. */

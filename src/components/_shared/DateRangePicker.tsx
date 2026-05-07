@@ -188,20 +188,25 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
         <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-slate-200 rounded-lg shadow-lg min-w-[280px] py-1">
 
           {/* ── Presets ─────────────────────────────────────────────── */}
-          {PRESETS.map(({ id, label: presetLabel }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => selectPreset(id)}
-              className={cn(
-                "w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition-colors",
-                value.presetId === id
-                  ? "text-indigo-600 font-medium bg-indigo-50/60"
-                  : "text-slate-700",
+          {PRESETS.map(({ id, label: presetLabel }, idx) => (
+            <div key={id}>
+              {/* Subtle group separators: after Yesterday (idx 1), after Last 7 Days (idx 3) */}
+              {(idx === 2 || idx === 4) && (
+                <div className="mx-3 my-0.5 border-t border-slate-100" />
               )}
-            >
-              {presetLabel}
-            </button>
+              <button
+                type="button"
+                onClick={() => selectPreset(id)}
+                className={cn(
+                  "w-full text-left px-4 py-1.5 text-sm hover:bg-slate-50 transition-colors",
+                  value.presetId === id
+                    ? "text-indigo-600 font-medium bg-indigo-50/60"
+                    : "text-slate-700",
+                )}
+              >
+                {presetLabel}
+              </button>
+            </div>
           ))}
 
           {/* ── Custom range ─────────────────────────────────────────── */}
@@ -308,25 +313,18 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
                   </div>
                 )}
 
-                {/* Resolved range display */}
+                {/* Resolved range preview */}
                 {baseFrom && (
-                  <div className="pt-1 border-t border-slate-100 space-y-1.5">
-                    <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                      Resolved ranges
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-[10px] font-bold text-indigo-500 w-6 shrink-0 pt-0.5">
-                        Base
-                      </span>
-                      <span className="text-[11px] text-slate-600 font-mono leading-tight">
+                  <div className="pt-2 border-t border-slate-100 space-y-1">
+                    <div className="flex items-start gap-1.5">
+                      <span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                      <span className="text-[11px] text-slate-600 leading-tight">
                         {baseFrom} → {baseTo}
                       </span>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-[10px] font-bold text-slate-400 w-6 shrink-0 pt-0.5">
-                        vs
-                      </span>
-                      <span className="text-[11px] text-slate-500 font-mono leading-tight">
+                    <div className="flex items-start gap-1.5">
+                      <span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0" />
+                      <span className="text-[11px] text-slate-400 leading-tight">
                         {refFrom} → {refTo}
                       </span>
                     </div>
