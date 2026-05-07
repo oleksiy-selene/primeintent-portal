@@ -227,7 +227,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
               <div className="px-4 pb-3 pt-2 space-y-2">
                 <div>
                   <label className="text-xs text-slate-500 block mb-1">
-                    From ({profile?.timezone ?? "America/New_York"})
+                    From
                   </label>
                   <input
                     type="datetime-local"
@@ -238,7 +238,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
                 </div>
                 <div>
                   <label className="text-xs text-slate-500 block mb-1">
-                    To ({profile?.timezone ?? "America/New_York"})
+                    To
                   </label>
                   <input
                     type="datetime-local"
