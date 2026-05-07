@@ -314,6 +314,12 @@ export default function Dashboard() {
                 <div className="text-3xl font-semibold text-indigo-600">
                   {usd(kpis.data?.revenue ?? 0)}
                 </div>
+                {compare.enabled && (
+                  <DeltaChip
+                    current={kpis.data?.revenue ?? null}
+                    reference={kpisRef.data?.revenue ?? null}
+                  />
+                )}
               </div>
               <div>
                 <div className="text-xs uppercase tracking-wider text-slate-500 mb-1">
@@ -322,6 +328,13 @@ export default function Dashboard() {
                 <div className="text-3xl font-semibold text-slate-700">
                   {usd(kpis.data?.cost ?? 0)}
                 </div>
+                {compare.enabled && (
+                  <DeltaChip
+                    current={kpis.data?.cost ?? null}
+                    reference={kpisRef.data?.cost ?? null}
+                    isInverse
+                  />
+                )}
               </div>
             </div>
           </div>
