@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { AppLayout } from "@/components/_shared/AppLayout";
 import { Header } from "@/components/_shared/Header";
 import { usd, num, formatDateTime } from "@/lib/format";
@@ -247,9 +248,19 @@ export default function Dashboard() {
     (topRef.data ?? []).map((c) => [c.campaign_id, c.revenue]),
   );
 
+  const displayedCampaigns = useMemo(() => {
+    const current = top.data ?? [];
+    if (!compare.enabled || !topRef.data) return current;
+    const currentIds = new Set(current.map((c) => c.campaign_id));
+    const gone = topRef.data
+      .filter((c) => !currentIds.has(c.campaign_id))
+      .map((c) => ({ ...c, revenue: 0 }));
+    return [...current, ...gone];
+  }, [compare.enabled, top.data, topRef.data]);
+
   const profit = (kpis.data?.revenue ?? 0) - (kpis.data?.cost ?? 0);
   const refProfit = kpisRef.data ? kpisRef.data.revenue - kpisRef.data.cost : null;
-  const maxRevenue = Math.max(1, ...(top.data ?? []).map((c) => c.revenue));
+  const maxRevenue = Math.max(1, ...(top.data ?? []).filter((c) => c.revenue > 0).map((c) => c.revenue));
 
   return (
     <AppLayout active="dashboard">
@@ -366,43 +377,46 @@ export default function Dashboard() {
                   <Loader2 className="w-4 h-4 animate-spin" /> Loading…
                 </div>
               )}
-              {top.data?.length === 0 && !top.isLoading && (
+              {displayedCampaigns.length === 0 && !top.isLoading && (
                 <div className="text-sm text-slate-400">No data yet.</div>
               )}
-              {top.data?.map((c) => (
-                <div key={c.campaign_id} className="flex flex-col gap-2">
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-sm font-medium text-slate-900 truncate">
-                      {c.name}
-                    </span>
-                    <div className="flex flex-col items-end">
-                      <span className="text-sm font-semibold text-slate-900">
-                        {usd(c.revenue)}
+              {displayedCampaigns.map((c) => {
+                const isGone = compare.enabled && c.revenue === 0 && (topRefMap.get(c.campaign_id) ?? 0) > 0;
+                return (
+                  <div key={c.campaign_id} className="flex flex-col gap-2">
+                    <div className="flex justify-between items-baseline">
+                      <span className={`text-sm font-medium truncate ${isGone ? "text-slate-400 line-through" : "text-slate-900"}`}>
+                        {c.name}
                       </span>
-                      {compare.enabled && (
-                        <DeltaChip
-                          current={c.revenue}
-                          reference={topRefMap.get(c.campaign_id) ?? null}
-                          isInverse={false}
+                      <div className="flex flex-col items-end">
+                        <span className={`text-sm font-semibold ${isGone ? "text-slate-400" : "text-slate-900"}`}>
+                          {isGone ? "—" : usd(c.revenue)}
+                        </span>
+                        {compare.enabled && (
+                          <DeltaChip
+                            current={c.revenue}
+                            reference={topRefMap.get(c.campaign_id) ?? null}
+                            isInverse={false}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-500 w-24 truncate">
+                        {c.partner}
+                      </span>
+                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${isGone ? "bg-red-200" : "bg-indigo-500"}`}
+                          style={{
+                            width: isGone ? "100%" : `${(c.revenue / maxRevenue) * 100}%`,
+                          }}
                         />
-                      )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-slate-500 w-24 truncate">
-                      {c.partner}
-                    </span>
-                    <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-500 rounded-full"
-                        style={{
-                          width: `${(c.revenue / maxRevenue) * 100}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

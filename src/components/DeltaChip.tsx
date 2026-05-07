@@ -5,6 +5,17 @@ interface DeltaChipProps {
 }
 
 export function DeltaChip({ current, reference, isInverse = false }: DeltaChipProps) {
+  const refPositive =
+    reference != null && Number.isFinite(reference) && reference > 0;
+
+  if (refPositive && (current == null || current === 0)) {
+    return (
+      <span className="block text-[0.85em] font-semibold text-red-500">
+        GONE
+      </span>
+    );
+  }
+
   if (current == null || !Number.isFinite(current)) {
     return (
       <span className="block text-[0.85em] font-normal text-slate-400 tabular-nums">
