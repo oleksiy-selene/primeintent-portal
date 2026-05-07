@@ -180,6 +180,7 @@ async function fetchPartnerStatuses(): Promise<PartnerStatus[]> {
 async function fetchPartnerPerf(
   partnerIds: number[],
   range: { from: string; to: string },
+  _referenceRange?: { from: string; to: string } | null,
 ): Promise<Map<number, PerfTotals>> {
   const result = new Map<number, PerfTotals>();
   partnerIds.forEach((id) => result.set(id, { visitors: 0, revenue: 0, cost: 0 }));
@@ -468,12 +469,10 @@ export default function Partners() {
     queryKey: ["partner-perf", partnerIds, selection, tz, compare],
     queryFn: () => {
       const range = resolvePresetRange(selection, tz);
-      // Reference range for Task #15 delta rendering (no-op until then)
-      const _referenceRange = compare.enabled
+      const referenceRange = compare.enabled
         ? resolveShiftedRange(selection, compare.shiftId, tz, compare.customDays)
         : null;
-      void _referenceRange;
-      return fetchPartnerPerf(partnerIds, range);
+      return fetchPartnerPerf(partnerIds, range, referenceRange);
     },
     enabled: partnerIds.length > 0 && isProfileLoaded,
     staleTime: 60_000,

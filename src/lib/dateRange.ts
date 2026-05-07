@@ -4,6 +4,7 @@ import {
   startOfWeek,
   startOfMonth,
   subDays,
+  subMonths,
 } from "date-fns";
 
 // ─── Typed IDs ────────────────────────────────────────────────────────────────
@@ -312,6 +313,15 @@ export function resolveShiftedRange(
   customDays: number = 7,
 ): ResolvedRange {
   const base = resolvePresetRange(selection, tz);
+  // "1mo" uses calendar-month subtraction (not a fixed 30-day ms offset) so
+  // the reference period aligns with actual month boundaries regardless of
+  // month length (28/29/30/31 days).
+  if (shiftId === "1mo") {
+    return {
+      from: subMonths(new Date(base.from), 1).toISOString(),
+      to:   subMonths(new Date(base.to),   1).toISOString(),
+    };
+  }
   const ms = shiftToMs(shiftId, customDays);
   return {
     from: new Date(new Date(base.from).getTime() - ms).toISOString(),

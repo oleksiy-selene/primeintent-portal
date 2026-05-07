@@ -16,7 +16,11 @@ interface KpiData {
   cost: number;
 }
 
-async function fetchKpis(from: string, to: string): Promise<KpiData> {
+async function fetchKpis(
+  from: string,
+  to: string,
+  _referenceRange?: { from: string; to: string } | null,
+): Promise<KpiData> {
   const [visitorsRes, conversionsRes, expensesRes] = await Promise.all([
     supabase
       .from("visitors")
@@ -187,12 +191,10 @@ export default function Dashboard() {
     queryKey: ["dashboard-kpis", selection, tz, compare],
     queryFn: () => {
       const { from, to } = resolvePresetRange(selection, tz);
-      // Reference range for Task #15 delta rendering (no-op until then)
-      const _referenceRange = compare.enabled
+      const referenceRange = compare.enabled
         ? resolveShiftedRange(selection, compare.shiftId, tz, compare.customDays)
         : null;
-      void _referenceRange;
-      return fetchKpis(from, to);
+      return fetchKpis(from, to, referenceRange);
     },
     enabled: isProfileLoaded,
   });

@@ -213,7 +213,11 @@ async function fetchCampaignsForPartner(
   return { rows, hasMore: rows.length === PAGE_SIZE };
 }
 
-async function fetchPerformance(campaignIds: number[], range: { from: string; to: string }): Promise<Map<number, PerfTotals>> {
+async function fetchPerformance(
+  campaignIds: number[],
+  range: { from: string; to: string },
+  _referenceRange?: { from: string; to: string } | null,
+): Promise<Map<number, PerfTotals>> {
   const result = new Map<number, PerfTotals>();
   campaignIds.forEach((id) => result.set(id, { visitors: 0, revenue: 0, cost: 0 }));
   if (campaignIds.length === 0) return result;
@@ -615,12 +619,10 @@ export default function PartnerDetail() {
     queryKey: ["partner-campaign-performance", visibleIds, selection, tz, compare],
     queryFn: () => {
       const range = resolvePresetRange(selection, tz);
-      // Reference range for Task #15 delta rendering (no-op until then)
-      const _referenceRange = compare.enabled
+      const referenceRange = compare.enabled
         ? resolveShiftedRange(selection, compare.shiftId, tz, compare.customDays)
         : null;
-      void _referenceRange;
-      return fetchPerformance(visibleIds, range);
+      return fetchPerformance(visibleIds, range, referenceRange);
     },
     enabled: visibleIds.length > 0 && isProfileLoaded,
   });

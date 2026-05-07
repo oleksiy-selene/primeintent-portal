@@ -134,7 +134,11 @@ async function fetchCampaignFilterOptions() {
   return (data ?? []) as { campaign_id: number; name: string }[];
 }
 
-async function fetchVisitorStats(from: string, to: string) {
+async function fetchVisitorStats(
+  from: string,
+  to: string,
+  _referenceRange?: { from: string; to: string } | null,
+) {
   const [v, c] = await Promise.all([
     supabase
       .from("visitors")
@@ -207,12 +211,10 @@ export default function Visitors() {
     queryKey: ["visitor-stats", selection, tz, compare],
     queryFn: () => {
       const { from, to } = resolvePresetRange(selection, tz);
-      // Reference range for Task #15 delta rendering (no-op until then)
-      const _referenceRange = compare.enabled
+      const referenceRange = compare.enabled
         ? resolveShiftedRange(selection, compare.shiftId, tz, compare.customDays)
         : null;
-      void _referenceRange;
-      return fetchVisitorStats(from, to);
+      return fetchVisitorStats(from, to, referenceRange);
     },
     enabled: isProfileLoaded,
   });
