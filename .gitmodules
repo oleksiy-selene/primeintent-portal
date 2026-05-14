@@ -1,3 +1,0 @@
-[submodule "supabase-db"]
-	path = supabase-db
-	url = git@github.com:oleksiy-selene/primeintent-supabase-db.git
