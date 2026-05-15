@@ -1,9 +1,8 @@
 -- table: visitor_conversion_data
--- pulled from dev: 2026-05-15T00:40:00Z
+-- pulled from dev: 2026-05-15T22:26:00Z
 
 CREATE TABLE IF NOT EXISTS public.visitor_conversion_data (
   visitor_conversion_id  bigint NOT NULL,
-  event_time_unix        bigint,
   call_duration_seconds  numeric,
   city                   text,
   city_meta              text,
