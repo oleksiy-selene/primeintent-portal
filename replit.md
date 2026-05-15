@@ -33,17 +33,11 @@ A React + Vite admin portal for managing affiliate marketing partners, campaigns
 - `src/pages/Dashboard.tsx` — summary dashboard
 - `src/pages/Users.tsx` — user management
 
-## Database schema (Supabase)
-- `profiles` — user_id, email, display_name, role, timezone (default 'America/New_York'), created_at
-- `partners` — partner_id, partner_uid, name, partner_type_id, partner_status_id, postback_url, created_at
-- `enum_partner_type` — partner_type_id, name
-- `enum_partner_status` — partner_status_id, name
-- `campaigns` — campaign_id, campaign_uid, name, partner_id, campaign_status_id, origin, channel, campaign_external_id, description, created_at
-- `enum_campaign_status` — campaign_status_id, name
-- `visitors` — visitor_id, click_id, campaign_id, created_at, subid1, subid2, ...
-- `visitor_conversions` — conversion_id, visitor_id, payout_amount, conversion_status_id, created_at
-- `enum_conversion_status` — conversion_status_id, name (approved/pending/rejected)
-- `campaign_expenses` — expense_id, campaign_id, amount, start_time, end_time
+---
+
+# Database management
+
+All schema changes use the `supabase-schema` skill — read `.agents/skills/supabase-schema/SKILL.md` before any schema operation.
 
 ## Features implemented
 - **Partners list**: search, type filter, status filter, date range filter (timezone-aware), Visitors/Revenue/Cost/Profit columns, campaign count, infinite scroll, avatar with status-colored border, add/edit dialog
