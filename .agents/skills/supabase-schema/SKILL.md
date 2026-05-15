@@ -5,15 +5,17 @@ description: Manage Supabase database schema changes safely using the Management
 
 # Supabase Schema Skill
 
-Manages database schema and seed data for Supabase without relying on git submodules, Docker, or the Supabase CLI. Uses SUPABASE_ACCESS_TOKEN + the Management API to read schema from and apply migrations to the **dev** database.
+Manages database schema and seed data for Supabase without relying on git submodules, Docker, or the Supabase CLI. Uses the Supabase Management API to read schema from and apply migrations to the **dev** database. The names of the required environment variables are configured in `config.json` (not hardcoded) so the skill works in any project regardless of naming conventions.
 
 ## Config
 
-Project refs are stored in `.agents/skills/supabase-schema/config.json`:
+Project configuration is stored in `.agents/skills/supabase-schema/config.json`:
 
 ```json
 {
   "production_project_ref": "cbmdldxphadvjbydeiqq",
+  "supabase_url_env_var_name": "<name of the env var holding the Supabase project URL>",
+  "supabase_access_token_env_var_name": "<name of the env var holding the personal access token>",
   "migration_tracking_table": "agent_migrations",
   "latest_schema_dir": "database/latest-schema",
   "migrations_dir": "database/migrations",
@@ -21,11 +23,18 @@ Project refs are stored in `.agents/skills/supabase-schema/config.json`:
 }
 ```
 
-Derive the dev ref at runtime from the env var named in `config.json` → `supabase_url_env_var` (currently `VITE_SUPABASE_URL`):
+- `supabase_url_env_var_name` — the **name** of the env var whose value is the Supabase project URL (`https://<ref>.supabase.co`). The dev project ref is extracted from this URL at runtime.
+- `supabase_access_token_env_var_name` — the **name** of the env var whose value is the Supabase personal access token (create one at supabase.com/dashboard/account/tokens).
+
+**Always read `config.json` first** to get the correct env var names before running any commands. Derive the credentials like this:
 
 ```bash
-SUPABASE_URL="${VITE_SUPABASE_URL}"   # var name comes from config.json supabase_url_env_var
-DEV_REF=$(echo "${SUPABASE_URL}" | sed -E 's|https?://([^.]+)\.supabase\.co.*|\1|')
+# Read env var names from config.json
+URL_VAR=$(jq -r .supabase_url_env_var_name .agents/skills/supabase-schema/config.json)
+TOKEN_VAR=$(jq -r .supabase_access_token_env_var_name .agents/skills/supabase-schema/config.json)
+# Resolve values at runtime
+DEV_REF=$(printenv "$URL_VAR" | sed -E 's|https?://([^.]+)\.supabase\.co.*|\1|')
+ACCESS_TOKEN=$(printenv "$TOKEN_VAR")
 ```
 
 The production ref (`cbmdldxphadvjbydeiqq`) is used **only** for read-only schema inspection when explicitly comparing dev vs production. All write operations (migrations, seeds, resets) target dev only.
@@ -49,18 +58,22 @@ database/
 ## Querying the Database
 
 ```bash
+# Resolve credentials (env var names come from config.json)
+URL_VAR=$(jq -r .supabase_url_env_var_name .agents/skills/supabase-schema/config.json)
+TOKEN_VAR=$(jq -r .supabase_access_token_env_var_name .agents/skills/supabase-schema/config.json)
+DEV_REF=$(printenv "$URL_VAR" | sed -E 's|https?://([^.]+)\.supabase\.co.*|\1|')
+ACCESS_TOKEN=$(printenv "$TOKEN_VAR")
+
 # Read from dev (schema inspection, migration checks)
-SUPABASE_URL="${VITE_SUPABASE_URL}"   # var name from config.json supabase_url_env_var
-DEV_REF=$(echo "${SUPABASE_URL}" | sed -E 's|https?://([^.]+)\.supabase\.co.*|\1|')
 curl -s -X POST "https://api.supabase.com/v1/projects/${DEV_REF}/database/query" \
-  -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{\"query\": \"<SQL>\"}"
 
 # Read from production (schema comparison only — never write)
 PROD_REF="cbmdldxphadvjbydeiqq"
 curl -s -X POST "https://api.supabase.com/v1/projects/${PROD_REF}/database/query" \
-  -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{\"query\": \"<SQL>\"}"
 ```
@@ -68,15 +81,19 @@ curl -s -X POST "https://api.supabase.com/v1/projects/${PROD_REF}/database/query
 For multi-statement SQL (BEGIN…COMMIT), use Node to JSON-escape:
 
 ```bash
-SUPABASE_URL="${VITE_SUPABASE_URL}"   # var name from config.json supabase_url_env_var
-DEV_REF=$(echo "${SUPABASE_URL}" | sed -E 's|https?://([^.]+)\.supabase\.co.*|\1|')
+# Resolve credentials (env var names come from config.json)
+URL_VAR=$(jq -r .supabase_url_env_var_name .agents/skills/supabase-schema/config.json)
+TOKEN_VAR=$(jq -r .supabase_access_token_env_var_name .agents/skills/supabase-schema/config.json)
+DEV_REF=$(printenv "$URL_VAR" | sed -E 's|https?://([^.]+)\.supabase\.co.*|\1|')
+ACCESS_TOKEN=$(printenv "$TOKEN_VAR")
+
 node -e "
 const sql = \`BEGIN;
   -- statements here
 COMMIT;\`;
 console.log(JSON.stringify({query: sql}));
 " | curl -s -X POST "https://api.supabase.com/v1/projects/${DEV_REF}/database/query" \
-  -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d @-
 ```
@@ -84,14 +101,18 @@ console.log(JSON.stringify({query: sql}));
 For migration files on disk:
 
 ```bash
-SUPABASE_URL="${VITE_SUPABASE_URL}"   # var name from config.json supabase_url_env_var
-DEV_REF=$(echo "${SUPABASE_URL}" | sed -E 's|https?://([^.]+)\.supabase\.co.*|\1|')
+# Resolve credentials (env var names come from config.json)
+URL_VAR=$(jq -r .supabase_url_env_var_name .agents/skills/supabase-schema/config.json)
+TOKEN_VAR=$(jq -r .supabase_access_token_env_var_name .agents/skills/supabase-schema/config.json)
+DEV_REF=$(printenv "$URL_VAR" | sed -E 's|https?://([^.]+)\.supabase\.co.*|\1|')
+ACCESS_TOKEN=$(printenv "$TOKEN_VAR")
+
 node -e "
 const fs = require('fs');
 const sql = fs.readFileSync('database/migrations/<file>.sql', 'utf8');
 console.log(JSON.stringify({query: sql}));
 " | curl -s -X POST "https://api.supabase.com/v1/projects/${DEV_REF}/database/query" \
-  -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d @-
 ```
@@ -104,7 +125,7 @@ All schema extraction SQL is in `.agents/skills/supabase-schema/schema-queries.m
 
 **When to run:** At the start of any task that may involve schema changes, or to sync local files with the current dev state.
 
-**Source: dev database** (`SUPABASE_URL` / `DEV_REF`)
+**Source: dev database** (URL resolved via `supabase_url_env_var_name` from `config.json`)
 
 **Steps:**
 
@@ -337,7 +358,7 @@ SELECT
 
 ## Safety Rules
 
-1. **Dev is the source of truth** — all `pull-schema` operations read from dev (`SUPABASE_URL` / `DEV_REF`). Production is read-only and only consulted for explicit comparisons.
+1. **Dev is the source of truth** — all `pull-schema` operations read from dev (URL from `supabase_url_env_var_name`). Production is read-only and only consulted for explicit comparisons.
 2. **Production is read-only** — never send DDL, DML, or seed inserts to the production ref.
 3. **Migrations self-guard** — every migration file must include the DO-block idempotency check against `public.agent_migrations`. The migration body must only run when not already recorded.
 4. **reset-dev is dev-only** — always confirm before truncating; never run against production.

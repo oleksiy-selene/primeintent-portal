@@ -25,6 +25,8 @@ Copy the entire `.agents/skills/supabase-schema/` folder into the target project
 ```json
 {
   "production_project_ref": "<target project's Supabase production ref>",
+  "supabase_url_env_var_name": "<name of the env var holding the Supabase project URL>",
+  "supabase_access_token_env_var_name": "<name of the env var holding the personal access token>",
   "migration_tracking_table": "agent_migrations",
   "latest_schema_dir": "database/latest-schema",
   "migrations_dir": "database/migrations",
@@ -33,19 +35,21 @@ Copy the entire `.agents/skills/supabase-schema/` folder into the target project
 ```
 
 - `production_project_ref` — find this in the Supabase dashboard under Project Settings > General. It is the alphanumeric string in your project URL (`https://supabase.com/dashboard/project/<ref>`).
+- `supabase_url_env_var_name` — the **name** of the env var whose value is the Supabase project URL. Different projects may expose this under different names (e.g. `SUPABASE_URL`, `VITE_SUPABASE_URL`). The dev project ref is extracted from the URL value at runtime.
+- `supabase_access_token_env_var_name` — the **name** of the env var whose value is the Supabase personal access token. Again, projects may name this differently (e.g. `SUPABASE_ACCESS_TOKEN`, `SUPABASE_TOKEN`).
 - The path fields (`latest_schema_dir`, `migrations_dir`, `seed_file`) only need changing if the target project uses a different directory layout.
 - `migration_tracking_table` can stay as `agent_migrations` unless the target project already uses that table name for something else.
 
 ### 3. Set the required environment variables
 
-The skill reads two env vars at runtime. Make sure both are set in the target project's secrets/environment:
+The skill reads two env vars at runtime — their **names** are configured in `config.json` under `supabase_url_env_var_name` and `supabase_access_token_env_var_name`. Make sure both are set in the target project's secrets/environment:
 
-| Variable | Description |
+| config.json key | What the env var must contain |
 |---|---|
-| `SUPABASE_URL` | The dev project's Supabase URL (`https://<dev-ref>.supabase.co`) |
-| `SUPABASE_ACCESS_TOKEN` | A Supabase personal access token (create one at supabase.com/dashboard/account/tokens) |
+| `supabase_url_env_var_name` | The dev project's Supabase URL (`https://<dev-ref>.supabase.co`) |
+| `supabase_access_token_env_var_name` | A Supabase personal access token (create one at supabase.com/dashboard/account/tokens) |
 
-The dev project ref is derived automatically from `SUPABASE_URL`, so no extra configuration is needed for dev.
+The dev project ref is derived automatically from the URL value, so no extra configuration is needed for dev.
 
 ### 4. Add a reference in replit.md
 

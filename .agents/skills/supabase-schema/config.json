@@ -1,6 +1,7 @@
 {
   "production_project_ref": "cbmdldxphadvjbydeiqq",
-  "supabase_url_env_var": "VITE_SUPABASE_URL",
+  "supabase_url_env_var_name": "VITE_SUPABASE_URL",
+  "supabase_access_token_env_var_name": "SUPABASE_ACCESS_TOKEN",
   "migration_tracking_table": "agent_migrations",
   "latest_schema_dir": "database/latest-schema",
   "migrations_dir": "database/migrations",
