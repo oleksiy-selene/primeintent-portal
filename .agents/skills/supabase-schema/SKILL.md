@@ -132,6 +132,19 @@ All schema extraction SQL is in `.agents/skills/supabase-schema/schema-queries.m
 1. Query **dev** for each object type (queries in `schema-queries.md`).
 2. Write one file per object into `database/latest-schema/<type>/`.
 3. Compare with previous versions — report any differences as **schema drift** and ask the user whether to write a migration capturing them.
+4. **RLS audit** — after pulling, run this query and report any findings as schema drift requiring immediate remediation:
+
+```sql
+SELECT t.tablename
+FROM pg_tables t
+LEFT JOIN pg_policies p ON p.schemaname = t.schemaname AND p.tablename = t.tablename
+WHERE t.schemaname = 'public'
+  AND (t.rowsecurity = false OR p.policyname IS NULL)
+GROUP BY t.tablename, t.rowsecurity
+ORDER BY t.tablename;
+```
+
+Any table returned is either missing RLS entirely (`rowsecurity = false`) or has RLS enabled but no policies (locked out). Both states are errors. Create a migration to fix them before proceeding.
 
 **Table DDL file format** (`database/latest-schema/tables/<table>.sql`):
 
@@ -180,14 +193,72 @@ For functions and triggers, write the raw `pg_get_functiondef()` / `pg_get_trigg
 
 **Steps:**
 
-1. Run **pull-schema** to ensure local files are current.
+1. Run **pull-schema** to ensure local files are current (includes RLS audit).
 2. Write the migration SQL using the **Migration File Format with In-SQL Idempotency Guard** (see below).
-3. Save as `database/migrations/<YYYYMMDDHHMMSS>_<short_description>.sql` (`date -u +%Y%m%d%H%M%S`).
-4. Apply to dev: `node -e … | curl …` using the migration file.
-5. On success, update affected `database/latest-schema/` files to reflect the new state.
-6. Tell the user: _"Migration `<name>` applied to dev. Run it on production when ready."_
+3. **RLS requirement** — every `CREATE TABLE` in the migration body **must** be immediately followed by:
+   - `ALTER TABLE public.<table> ENABLE ROW LEVEL SECURITY;`
+   - At least one `CREATE POLICY` statement appropriate for the table's access pattern (see **RLS Policy Patterns** below).
+   - A new `database/latest-schema/policies/<table>.sql` file must be created or updated to reflect these policies.
+   - Do **not** rely on the `rls_auto_enable` event trigger as a substitute — always include the `ALTER TABLE … ENABLE ROW LEVEL SECURITY` explicitly in the migration.
+4. Save as `database/migrations/<YYYYMMDDHHMMSS>_<short_description>.sql` (`date -u +%Y%m%d%H%M%S`).
+5. Apply to dev: `node -e … | curl …` using the migration file.
+6. On success, update affected `database/latest-schema/` files to reflect the new state.
+7. Tell the user: _"Migration `<name>` applied to dev. Run it on production when ready."_
 
 **Never apply migrations to production.**
+
+---
+
+## RLS Policy Patterns
+
+Choose the pattern that matches the table's intended access. All use the `is_admin()` and `is_manager_or_above()` helper functions already defined in the schema.
+
+**App data — authenticated read, manager/admin write** (e.g. partners, campaigns):
+```sql
+ALTER TABLE public.<table> ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "<table>_read" ON public.<table>
+  AS PERMISSIVE FOR SELECT TO authenticated USING (true);
+CREATE POLICY "<table>_manager_write" ON public.<table>
+  AS PERMISSIVE FOR ALL TO authenticated
+  USING (is_manager_or_above()) WITH CHECK (is_manager_or_above());
+```
+
+**App data — authenticated read, admin write** (e.g. profiles):
+```sql
+ALTER TABLE public.<table> ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "<table>_read" ON public.<table>
+  AS PERMISSIVE FOR SELECT TO authenticated USING (true);
+CREATE POLICY "<table>_admin_write" ON public.<table>
+  AS PERMISSIVE FOR ALL TO authenticated
+  USING (is_admin()) WITH CHECK (is_admin());
+```
+
+**Lookup / enum tables — authenticated read-only**:
+```sql
+ALTER TABLE public.<table> ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "<table>_read" ON public.<table>
+  AS PERMISSIVE FOR SELECT TO authenticated USING (true);
+```
+
+**Internal / logging tables — admin read, service-role writes** (e.g. event_logs, expense_sync_logs):
+```sql
+ALTER TABLE public.<table> ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "<table>_admin_read" ON public.<table>
+  AS PERMISSIVE FOR SELECT TO authenticated USING (is_admin());
+-- No write policy needed: backend workers use service_role, which bypasses RLS.
+```
+
+**Per-user data — user reads/updates their own row only** (e.g. user settings):
+```sql
+ALTER TABLE public.<table> ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "<table>_self_read" ON public.<table>
+  AS PERMISSIVE FOR SELECT TO authenticated USING (user_id = auth.uid());
+CREATE POLICY "<table>_self_update" ON public.<table>
+  AS PERMISSIVE FOR UPDATE TO authenticated
+  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+```
+
+If none of these patterns fit the new table exactly, document the reasoning in the migration file comment and pick the most restrictive pattern that still allows the required access.
 
 ---
 
@@ -228,7 +299,21 @@ BEGIN
   -- DDL via EXECUTE (required inside DO blocks)
   EXECUTE $sql$ CREATE TABLE IF NOT EXISTS public.<table> (...); $sql$;
   EXECUTE $sql$ CREATE INDEX IF NOT EXISTS ...; $sql$;
-  -- ... more statements ...
+
+  -- ── RLS (required for every new table) ─────────────────────────────────
+  -- Choose the policy pattern from the "RLS Policy Patterns" section that
+  -- matches this table's access model. Never omit this block.
+  EXECUTE $sql$ ALTER TABLE public.<table> ENABLE ROW LEVEL SECURITY; $sql$;
+  EXECUTE $sql$
+    DO $p$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='<table>' AND policyname='<table>_read') THEN
+        CREATE POLICY "<table>_read" ON public.<table>
+          AS PERMISSIVE FOR SELECT TO authenticated USING (true);
+      END IF;
+      -- add write policy here if required by the access pattern
+    END; $p$;
+  $sql$;
+  -- ───────────────────────────────────────────────────────────────────────
 
   -- Record this migration (runs only when body was not skipped)
   INSERT INTO public.agent_migrations (migration_name) VALUES (v_name);
@@ -244,6 +329,7 @@ COMMIT;
 - `RETURN` inside a DO block exits only the block, not the transaction — `COMMIT` always runs
 - The `INSERT INTO agent_migrations` must be the **last statement** inside the DO block (before `END`)
 - Use nested dollar-quoting for function bodies: outer `$sql$…$sql$`, inner `$fn$…$fn$`
+- Every `CREATE TABLE` must be followed by its RLS block (see **RLS Policy Patterns**)
 
 ---
 
@@ -367,3 +453,4 @@ SELECT
 7. **Additive first** — never `DROP` or `RENAME` without explicit user approval; the database is shared.
 8. **Transactions** — wrap every migration in `BEGIN; … COMMIT;`.
 9. **Update latest-schema after apply** — keep local files in sync after each successful migration.
+10. **RLS required on every table** — every `CREATE TABLE` in a migration must be paired with `ALTER TABLE … ENABLE ROW LEVEL SECURITY` and at least one `CREATE POLICY` in the same migration body. Do not rely on the `rls_auto_enable` event trigger as a substitute. After applying any migration, run the RLS audit query (see `pull-schema` step 4) to confirm no table is left unprotected. A table with RLS enabled but zero policies is fully locked out — both states are errors.
