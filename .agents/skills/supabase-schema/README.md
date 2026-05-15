@@ -47,9 +47,18 @@ The skill reads two env vars at runtime — their **names** are configured in `c
 | config.json key | What the env var must contain |
 |---|---|
 | `supabase_url_env_var_name` | The dev project's Supabase URL (`https://<dev-ref>.supabase.co`) |
-| `supabase_access_token_env_var_name` | A Supabase personal access token (create one at supabase.com/dashboard/account/tokens) |
+| `supabase_access_token_env_var_name` | A Supabase personal access token (see below for how to generate one) |
 
 The dev project ref is derived automatically from the URL value, so no extra configuration is needed for dev.
+
+#### How to generate a Supabase Personal Access Token
+
+The access token is a Personal Access Token with a `sbp_` prefix. It is used specifically for authenticating with the Supabase Management API (managing projects, organizations, CI/CD workflows — not for querying your database as an end user).
+
+1. **Go to Account Settings** — click your avatar / profile icon at the very bottom-left of the Supabase dashboard sidebar.
+2. **Select Access Tokens** — in the account menu sidebar, click **Access Tokens**.
+3. **Generate a new token** — click **Generate new token**, give it a descriptive name (e.g. `Replit Agent`), then click **Confirm**.
+4. **Copy the token immediately** — it is only shown once. Store it as a secret in your project (it will look like `sbp_xxxxxxxx...`).
 
 ### 4. Add a reference in replit.md
 
