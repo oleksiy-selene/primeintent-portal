@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect, type ReactNode } from "react";
+import { useMemo, useState, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { DateRangePicker } from "@/components/_shared/DateRangePicker";
 import { useDateRangeWithTimezone } from "@/hooks/useDateRangeWithTimezone";
@@ -14,11 +14,11 @@ import { AppLayout } from "@/components/_shared/AppLayout";
 import { Header } from "@/components/_shared/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { PAGE_SIZE } from "@/lib/useInfiniteScroll";
+import { useInfiniteScroll, PAGE_SIZE } from "@/lib/useInfiniteScroll";
 import { useSortState } from "@/lib/useSortState";
 import { SortableHeader } from "@/components/SortableHeader";
 import { CampaignDialog } from "@/components/CampaignDialog";
-import { num, usd, formatDate } from "@/lib/format";
+import { num, usd, formatDate, formatTime } from "@/lib/format";
 import { DeltaChip } from "@/components/DeltaChip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -266,6 +266,37 @@ async function fetchCampaignStatuses(): Promise<CampaignStatus[]> {
     .order("campaign_status_id");
   if (error) throw error;
   return (data ?? []) as CampaignStatus[];
+}
+
+function UidCopy({ uid }: { uid: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <span className="inline-flex items-center gap-1 font-mono">
+      {uid.slice(0, 8)}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          void navigator.clipboard.writeText(uid).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          });
+        }}
+        className="cursor-pointer text-slate-400 hover:text-indigo-500 transition-colors"
+        title="Copy full UID"
+      >
+        {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+      </button>
+    </span>
+  );
+}
+
+function statusDotClass(statusName: string | null | undefined): string {
+  if (!statusName) return "bg-slate-300";
+  const s = statusName.toLowerCase();
+  if (s === "active") return "bg-emerald-400";
+  if (s === "paused") return "bg-amber-400";
+  return "bg-slate-300";
 }
 
 function FieldRow({
@@ -639,21 +670,11 @@ export default function PartnerDetail() {
   const refPerfFor = (id: number) =>
     performanceRefQ.data?.get(id) ?? null;
 
-  const sentinelRef = useRef<HTMLTableRowElement | null>(null);
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && campaignsQ.hasNextPage && !campaignsQ.isFetchingNextPage) {
-          void campaignsQ.fetchNextPage();
-        }
-      },
-      { rootMargin: "200px" },
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [campaignsQ]);
+  const sentinelRef = useInfiniteScroll<HTMLTableRowElement>({
+    hasMore: !!campaignsQ.hasNextPage,
+    isLoading: campaignsQ.isFetchingNextPage,
+    onLoadMore: () => void campaignsQ.fetchNextPage(),
+  });
 
   const partnerOptionsQ = useQuery({
     queryKey: ["partner-options"],
@@ -820,153 +841,181 @@ export default function PartnerDetail() {
                 <div className="overflow-auto flex-1">
                   <Table>
                     <TableHeader className="bg-slate-50 sticky top-0 z-10">
-                      <TableRow className="border-slate-200">
-                        <SortableHeader
-                          label="Campaign"
-                          sortKey="name"
-                          activeSortKey={campSortKey}
-                          activeSortDir={campSortDir}
-                          onSort={(k) => campToggleSort(k as CampaignsSortKey)}
-                          className="font-medium pl-6"
-                        />
-                        <TableHead className="font-medium text-right">Visitors</TableHead>
-                        <TableHead className="font-medium text-right">Revenue</TableHead>
-                        <TableHead className="font-medium text-right">Cost</TableHead>
-                        <TableHead className="font-medium text-right">Profit</TableHead>
-                        <SortableHeader
-                          label="Status"
-                          sortKey="campaign_status_id"
-                          activeSortKey={campSortKey}
-                          activeSortDir={campSortDir}
-                          onSort={(k) => campToggleSort(k as CampaignsSortKey)}
-                          className="font-medium"
-                        />
+                      <TableRow>
                         <SortableHeader
                           label="Created"
                           sortKey="created_at"
                           activeSortKey={campSortKey}
                           activeSortDir={campSortDir}
                           onSort={(k) => campToggleSort(k as CampaignsSortKey)}
-                          className={cn("font-medium", !canWrite && "pr-6")}
+                          className="w-[120px] pl-6"
                         />
+                        <SortableHeader
+                          label="Campaign"
+                          sortKey="name"
+                          activeSortKey={campSortKey}
+                          activeSortDir={campSortDir}
+                          onSort={(k) => campToggleSort(k as CampaignsSortKey)}
+                          className="w-[260px]"
+                        />
+                        <SortableHeader
+                          label="Status"
+                          sortKey="campaign_status_id"
+                          activeSortKey={campSortKey}
+                          activeSortDir={campSortDir}
+                          onSort={(k) => campToggleSort(k as CampaignsSortKey)}
+                          className="w-[120px]"
+                        />
+                        <TableHead className="text-right w-[100px]">Visitors</TableHead>
+                        <TableHead className="text-right w-[100px]">Revenue</TableHead>
+                        <TableHead className="text-right w-[100px]">Cost</TableHead>
+                        <TableHead className={cn("text-right w-[100px]", !canWrite && "pr-6")}>Profit</TableHead>
                         {canWrite && <TableHead className="w-[60px] pr-6" />}
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-slate-100">
-                      {campaignsQ.isLoading && (
-                        <TableRow>
-                          <TableCell colSpan={canWrite ? 8 : 7} className="px-4 py-10 text-center text-slate-400">
-                            <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
-                            Loading…
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {!campaignsQ.isLoading && campaignRows.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={canWrite ? 8 : 7} className="px-4 py-10 text-center text-slate-400">
-                            No campaigns for this partner yet.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {campaignRows.map((c) => {
-                        const status = c.enum_campaign_status?.name ?? "—";
-                        const p = perfFor(c.campaign_id);
-                        const profit = p.revenue - p.cost;
-                        const ref = refPerfFor(c.campaign_id);
-                        const refProfit = ref ? ref.revenue - ref.cost : null;
+                      {(() => {
+                        const CAMP_COLS = canWrite ? 8 : 7;
                         return (
-                          <TableRow key={c.campaign_id} className="hover:bg-slate-50/50 transition-colors">
-                            <TableCell className="pl-6">
-                              <div className="font-medium text-slate-900">{c.name}</div>
-                              <div className="text-xs text-slate-500 mt-0.5 font-mono">
-                                {c.campaign_uid.slice(0, 8)}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-slate-700 text-right tabular-nums">
-                              {performanceQ.isFetching ? "…" : (
-                                <>
-                                  {num(p.visitors)}
-                                  {compare.enabled && <DeltaChip current={p.visitors} reference={ref?.visitors} />}
-                                </>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-slate-700 text-right tabular-nums">
-                              {performanceQ.isFetching ? "…" : (
-                                <>
-                                  {usd(p.revenue)}
-                                  {compare.enabled && <DeltaChip current={p.revenue} reference={ref?.revenue} />}
-                                </>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-slate-700 text-right tabular-nums">
-                              {performanceQ.isFetching ? "…" : (
-                                <>
-                                  {usd(p.cost)}
-                                  {compare.enabled && <DeltaChip current={p.cost} reference={ref?.cost} isInverse />}
-                                </>
-                              )}
-                            </TableCell>
-                            <TableCell
-                              className={`text-right tabular-nums font-medium ${
-                                profit >= 0 ? "text-emerald-700" : "text-rose-700"
-                              }`}
-                            >
-                              {performanceQ.isFetching ? "…" : (
-                                <>
-                                  {usd(profit)}
-                                  {compare.enabled && <DeltaChip current={profit} reference={refProfit} />}
-                                </>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                className={
-                                  status === "Active"
-                                    ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200"
-                                    : status === "Paused"
-                                      ? "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200"
-                                      : "text-slate-600 bg-slate-50 border-slate-200"
-                                }
-                              >
-                                {status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className={cn("text-slate-500 text-sm whitespace-nowrap", !canWrite && "pr-6")}>
-                              {formatDate(c.created_at)}
-                            </TableCell>
-                            {canWrite && (
-                              <TableCell className="pr-6">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  title="Edit campaign"
-                                  onClick={() => {
-                                    setEditingCampaign(c);
-                                    setCampaignDialogOpen(true);
-                                  }}
-                                  className="h-8 w-8 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </Button>
-                              </TableCell>
+                          <>
+                            {campaignsQ.isLoading && (
+                              <TableRow>
+                                <TableCell colSpan={CAMP_COLS} className="px-4 py-10 text-center text-slate-400">
+                                  <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+                                  Loading…
+                                </TableCell>
+                              </TableRow>
                             )}
-                          </TableRow>
+                            {!campaignsQ.isLoading && campaignRows.length === 0 && (
+                              <TableRow>
+                                <TableCell colSpan={CAMP_COLS} className="px-4 py-10 text-center text-slate-400">
+                                  No campaigns for this partner yet.
+                                </TableCell>
+                              </TableRow>
+                            )}
+                            {campaignRows.map((c) => {
+                              const status = c.enum_campaign_status?.name ?? "—";
+                              const p = perfFor(c.campaign_id);
+                              const profit = p.revenue - p.cost;
+                              const ref = refPerfFor(c.campaign_id);
+                              const refProfit = ref ? ref.revenue - ref.cost : null;
+                              return (
+                                <TableRow key={c.campaign_id} className="hover:bg-slate-50/80 transition-colors">
+                                  <TableCell className="text-xs text-slate-500 pl-6">
+                                    <div>{formatDate(c.created_at)}</div>
+                                    <div className="mt-0.5">{formatTime(c.created_at)}</div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-3">
+                                      <span
+                                        className={cn(
+                                          "w-2 h-2 rounded-full shrink-0",
+                                          statusDotClass(c.enum_campaign_status?.name),
+                                        )}
+                                      />
+                                      <div className="flex flex-col min-w-0">
+                                        <span className="font-medium text-slate-900 truncate">{c.name}</span>
+                                        <span className="text-xs text-slate-500">
+                                          <UidCopy uid={c.campaign_uid} />
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      className={
+                                        status === "Active"
+                                          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200"
+                                          : status === "Paused"
+                                            ? "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200"
+                                            : "text-slate-600 bg-slate-50 border-slate-200"
+                                      }
+                                    >
+                                      {status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right text-sm text-slate-700 tabular-nums">
+                                    {performanceQ.isFetching ? (
+                                      <span className="text-slate-300">—</span>
+                                    ) : (
+                                      <>
+                                        {num(p.visitors)}
+                                        {compare.enabled && <DeltaChip current={p.visitors} reference={ref?.visitors} />}
+                                      </>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right text-sm text-slate-700 tabular-nums">
+                                    {performanceQ.isFetching ? (
+                                      <span className="text-slate-300">—</span>
+                                    ) : (
+                                      <>
+                                        {usd(p.revenue)}
+                                        {compare.enabled && <DeltaChip current={p.revenue} reference={ref?.revenue} />}
+                                      </>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right text-sm text-slate-700 tabular-nums">
+                                    {performanceQ.isFetching ? (
+                                      <span className="text-slate-300">—</span>
+                                    ) : (
+                                      <>
+                                        {usd(p.cost)}
+                                        {compare.enabled && <DeltaChip current={p.cost} reference={ref?.cost} isInverse />}
+                                      </>
+                                    )}
+                                  </TableCell>
+                                  <TableCell
+                                    className={cn(
+                                      "text-right text-sm tabular-nums font-medium",
+                                      profit >= 0 ? "text-emerald-600" : "text-rose-500",
+                                      !canWrite && "pr-6",
+                                    )}
+                                  >
+                                    {performanceQ.isFetching ? (
+                                      <span className="text-slate-300">—</span>
+                                    ) : (
+                                      <>
+                                        {usd(profit)}
+                                        {compare.enabled && <DeltaChip current={profit} reference={refProfit} />}
+                                      </>
+                                    )}
+                                  </TableCell>
+                                  {canWrite && (
+                                    <TableCell className="pr-6">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        title="Edit campaign"
+                                        onClick={() => {
+                                          setEditingCampaign(c);
+                                          setCampaignDialogOpen(true);
+                                        }}
+                                        className="h-8 w-8 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                      >
+                                        <Edit2 className="w-4 h-4" />
+                                      </Button>
+                                    </TableCell>
+                                  )}
+                                </TableRow>
+                              );
+                            })}
+                            {campaignsQ.hasNextPage && (
+                              <TableRow ref={sentinelRef}>
+                                <TableCell colSpan={CAMP_COLS} className="py-4 text-center text-slate-400 text-xs">
+                                  {campaignsQ.isFetchingNextPage ? (
+                                    <>
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-2" />
+                                      Loading more…
+                                    </>
+                                  ) : (
+                                    "Scroll to load more"
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </>
                         );
-                      })}
-                      {campaignsQ.hasNextPage && (
-                        <TableRow ref={sentinelRef}>
-                          <TableCell colSpan={canWrite ? 8 : 7} className="py-4 text-center text-slate-400 text-xs">
-                            {campaignsQ.isFetchingNextPage ? (
-                              <>
-                                <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-2" />
-                                Loading more…
-                              </>
-                            ) : (
-                              "Scroll to load more"
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      )}
+                      })()}
                     </TableBody>
                   </Table>
                 </div>
