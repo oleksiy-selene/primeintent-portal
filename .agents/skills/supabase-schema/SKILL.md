@@ -21,9 +21,10 @@ Project refs are stored in `.agents/skills/supabase-schema/config.json`:
 }
 ```
 
-Derive the dev ref at runtime from the `SUPABASE_URL` env var:
+Derive the dev ref at runtime from the env var named in `config.json` → `supabase_url_env_var` (currently `VITE_SUPABASE_URL`):
 
 ```bash
+SUPABASE_URL="${VITE_SUPABASE_URL}"   # var name comes from config.json supabase_url_env_var
 DEV_REF=$(echo "${SUPABASE_URL}" | sed -E 's|https?://([^.]+)\.supabase\.co.*|\1|')
 ```
 
@@ -49,6 +50,7 @@ database/
 
 ```bash
 # Read from dev (schema inspection, migration checks)
+SUPABASE_URL="${VITE_SUPABASE_URL}"   # var name from config.json supabase_url_env_var
 DEV_REF=$(echo "${SUPABASE_URL}" | sed -E 's|https?://([^.]+)\.supabase\.co.*|\1|')
 curl -s -X POST "https://api.supabase.com/v1/projects/${DEV_REF}/database/query" \
   -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
@@ -66,6 +68,7 @@ curl -s -X POST "https://api.supabase.com/v1/projects/${PROD_REF}/database/query
 For multi-statement SQL (BEGIN…COMMIT), use Node to JSON-escape:
 
 ```bash
+SUPABASE_URL="${VITE_SUPABASE_URL}"   # var name from config.json supabase_url_env_var
 DEV_REF=$(echo "${SUPABASE_URL}" | sed -E 's|https?://([^.]+)\.supabase\.co.*|\1|')
 node -e "
 const sql = \`BEGIN;
@@ -81,6 +84,7 @@ console.log(JSON.stringify({query: sql}));
 For migration files on disk:
 
 ```bash
+SUPABASE_URL="${VITE_SUPABASE_URL}"   # var name from config.json supabase_url_env_var
 DEV_REF=$(echo "${SUPABASE_URL}" | sed -E 's|https?://([^.]+)\.supabase\.co.*|\1|')
 node -e "
 const fs = require('fs');
