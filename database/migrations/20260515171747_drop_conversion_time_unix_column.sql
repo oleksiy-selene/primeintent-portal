@@ -1,7 +1,15 @@
 -- Migration: 20260515171747_drop_conversion_time_unix_column
 -- Created:   2026-05-15
 -- Description: Drop the event_time_unix column from visitor_conversion_data.
---              (Reconstructed from dev schema — original file was not committed.)
+--
+-- NOTE — SCHEMA DRIFT RECOVERY: This migration was applied to dev on 2026-05-15
+-- (confirmed via agent_migrations.applied_at = 2026-05-15 17:18:00+00) but the
+-- original .sql file was never committed to the repository. This file was
+-- reconstructed during task #26 by comparing the local table schema
+-- (which still declared event_time_unix) against the live dev column list
+-- (which showed the column absent). The DO-block idempotency guard means
+-- re-running this file against dev is safe — it will detect the existing
+-- agent_migrations row and skip the body.
 --
 -- Apply to an environment:
 --   Option A: Supabase dashboard → SQL Editor → paste and run
