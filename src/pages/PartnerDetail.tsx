@@ -725,6 +725,7 @@ export default function PartnerDetail() {
   }
 
   const badgeClasses = statusBadgeClass(savedStatus?.name);
+  const CAMP_COLS = canWrite ? 8 : 7;
 
   return (
     <AppLayout active="partners">
@@ -874,11 +875,8 @@ export default function PartnerDetail() {
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-slate-100">
-                      {(() => {
-                        const CAMP_COLS = canWrite ? 8 : 7;
-                        return (
-                          <>
-                            {campaignsQ.isLoading && (
+                      <>
+                        {campaignsQ.isLoading && (
                               <TableRow>
                                 <TableCell colSpan={CAMP_COLS} className="px-4 py-10 text-center text-slate-400">
                                   <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
@@ -1013,9 +1011,7 @@ export default function PartnerDetail() {
                                 </TableCell>
                               </TableRow>
                             )}
-                          </>
-                        );
-                      })()}
+                      </>
                     </TableBody>
                   </Table>
                 </div>
