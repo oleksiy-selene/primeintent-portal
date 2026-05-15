@@ -12,7 +12,6 @@ dist/
 # Replit internals
 .cache/
 .upm/
-.agents/
 .local/
 
 # Misc

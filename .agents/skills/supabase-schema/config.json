@@ -1,0 +1,7 @@
+{
+  "production_project_ref": "cbmdldxphadvjbydeiqq",
+  "migration_tracking_table": "agent_migrations",
+  "latest_schema_dir": "database/latest-schema",
+  "migrations_dir": "database/migrations",
+  "seed_file": "database/seed.sql"
+}
