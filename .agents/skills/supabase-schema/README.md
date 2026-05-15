@@ -51,6 +51,15 @@ The skill reads two env vars at runtime — their **names** are configured in `c
 
 The dev project ref is derived automatically from the URL value, so no extra configuration is needed for dev.
 
+#### How to find your Supabase project URL
+
+1. Open the [Supabase dashboard](https://supabase.com/dashboard) and select your project.
+2. Go to **Project Settings → Data API**.
+3. Copy the value shown under **API URL** — it will look like `https://<ref>.supabase.co/rest/v1/`.
+4. Strip the trailing `/rest/v1/` so the final value ends with `.co`, e.g. `https://<ref>.supabase.co`.
+
+Store this as the secret named in `supabase_url_env_var_name`.
+
 #### How to generate a Supabase Personal Access Token
 
 The access token is a Personal Access Token with a `sbp_` prefix. It is used specifically for authenticating with the Supabase Management API (managing projects, organizations, CI/CD workflows — not for querying your database as an end user).
