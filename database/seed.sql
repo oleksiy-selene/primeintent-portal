@@ -103,6 +103,17 @@ VALUES
   (3, '00000000-0000-0000-0000-000000000000', 1, NULL, 1, 'Default Campaign', NULL, 'test', 'test')
 ON CONFLICT (campaign_id) DO NOTHING;
 
+-- visitors
+INSERT INTO public.visitors (visitor_id, visitor_uid, campaign_id, ip_address, user_agent)
+OVERRIDING SYSTEM VALUE
+VALUES
+  (1, '00000000-0000-0000-0000-000000000000', 3, '0.0.0.0', 'default')
+ON CONFLICT (visitor_id) DO UPDATE SET
+  visitor_uid = EXCLUDED.visitor_uid,
+  campaign_id = EXCLUDED.campaign_id,
+  ip_address  = EXCLUDED.ip_address,
+  user_agent  = EXCLUDED.user_agent;
+
 -- Reset sequences so future inserts continue from the right value
 SELECT setval('public.enum_browser_family_browser_family_id_seq', (SELECT MAX(browser_family_id) FROM public.enum_browser_family));
 SELECT setval('public.enum_campaign_status_campaign_status_id_seq', (SELECT MAX(campaign_status_id) FROM public.enum_campaign_status));
@@ -114,3 +125,4 @@ SELECT setval('public.enum_partner_status_partner_status_id_seq', (SELECT MAX(pa
 SELECT setval('public.enum_partner_type_partner_type_id_seq', (SELECT MAX(partner_type_id) FROM public.enum_partner_type));
 SELECT setval('public.partners_partner_id_seq', (SELECT MAX(partner_id) FROM public.partners));
 SELECT setval('public.campaigns_campaign_id_seq', (SELECT MAX(campaign_id) FROM public.campaigns));
+SELECT setval('public.visitors_visitor_id_seq', (SELECT MAX(visitor_id) FROM public.visitors));
